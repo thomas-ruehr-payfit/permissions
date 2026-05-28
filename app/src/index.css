@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #F5F3EE;
+  --surface: #FFFFFF;
+  --border: rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.14);
+  --text: #1A1916;
+  --text2: #6B6760;
+  --text3: #A8A49E;
+
+  --org:        #5B4FD4;
+  --org-bg:     #EEEDFE;
+  --entity:     #0F6E56;
+  --entity-bg:  #E1F5EE;
+  --payroll:    #C04A1E;
+  --payroll-bg: #FAEEDA;
+  --hr:         #6C2E9A;
+  --hr-bg:      #F0E8F8;
+  --acct:       #1458A8;
+  --acct-bg:    #E6F1FB;
+  --mgr:        #5A5855;
+  --mgr-bg:     #F0EEE8;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+button { font-family: 'DM Sans', sans-serif; cursor: pointer; }
+input, select, textarea { font-family: 'DM Sans', sans-serif; }
