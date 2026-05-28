@@ -40,7 +40,6 @@ export function PersonDetail() {
     return null;
   }
 
-  const meta = ROLE_META[user.access[0].role];
   const isPending = user.status === 'pending';
 
   const startEdit = () => {
