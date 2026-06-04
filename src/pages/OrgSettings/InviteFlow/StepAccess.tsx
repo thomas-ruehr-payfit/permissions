@@ -235,6 +235,11 @@ function PairEditor({
 
 const ENTITY_FLAGS: Record<string, string> = { fr: '🇫🇷', es: '🇪🇸', uk: '🇬🇧' };
 
+function entityLabel(id: string) {
+  const e = ENTITIES.find(en => en.id === id);
+  return e ? `${ENTITY_FLAGS[id] ?? ''} ${e.country}` : id;
+}
+
 function ManagerPerimeterEditor({
   reports, onChange,
 }: {
@@ -342,7 +347,7 @@ function ManagerPerimeterEditor({
       </div>
 
       {/* Employee list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 560 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {filtered.map(member => {
           const report = reports.find(r => r.employeeId === member.id);
           const isChecked = !!report;
@@ -362,7 +367,7 @@ function ManagerPerimeterEditor({
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: 'var(--text3)' }}>{member.title}</span>
                     <span style={{ color: 'var(--border2)', fontSize: 11 }}>·</span>
-                    <span style={{ fontSize: 12 }}>{ENTITY_FLAGS[member.entityId] ?? ''}</span>
+                    <span style={{ fontSize: 12, fontFamily: "'DM Mono', monospace", color: 'var(--text3)' }}>{entityLabel(member.entityId)}</span>
                     {groups.length > 0 && (
                       <>
                         <span style={{ color: 'var(--border2)', fontSize: 11 }}>·</span>

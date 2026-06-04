@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { TEAM_MEMBERS } from '../../../data/mock-users';
-import { GROUPS } from '../../../data/mock-entities';
+import { GROUPS, ENTITIES } from '../../../data/mock-entities';
 import type { InviteState } from './types';
 
 interface Props {
@@ -9,6 +9,11 @@ interface Props {
 }
 
 const ENTITY_FLAGS: Record<string, string> = { fr: '🇫🇷', es: '🇪🇸', uk: '🇬🇧' };
+
+function entityLabel(id: string) {
+  const e = ENTITIES.find(en => en.id === id);
+  return e ? `${ENTITY_FLAGS[id] ?? ''} ${e.country}` : id;
+}
 
 export function StepWho({ invite, setInvite }: Props) {
   const [search, setSearch] = useState('');
@@ -80,7 +85,7 @@ export function StepWho({ invite, setInvite }: Props) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: 'var(--text3)' }}>{emp.title}</span>
                       <span style={{ color: 'var(--border2)' }}>·</span>
-                      <span style={{ fontSize: 12 }}>{ENTITY_FLAGS[emp.entityId] ?? ''}</span>
+                      <span style={{ fontSize: 12, fontFamily: "'DM Mono', monospace", color: 'var(--text3)' }}>{entityLabel(emp.entityId)}</span>
                       {groups.length > 0 && (
                         <>
                           <span style={{ color: 'var(--border2)' }}>·</span>

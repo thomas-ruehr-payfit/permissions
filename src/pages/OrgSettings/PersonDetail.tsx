@@ -8,6 +8,11 @@ import type { RoleKey, AccessPair, ManagerPermissions, ManagerReport } from '../
 
 const ENTITY_FLAGS_D: Record<string, string> = { fr: '🇫🇷', es: '🇪🇸', uk: '🇬🇧' };
 
+function entityLabelD(id: string) {
+  const e = ENTITIES.find(en => en.id === id);
+  return e ? `${ENTITY_FLAGS_D[id] ?? ''} ${e.country}` : id;
+}
+
 // ── Permission defs ───────────────────────────────────────────────────────────
 
 const PERM_GROUPS: { label: string; items: { key: keyof ManagerPermissions; label: string; description: string }[] }[] = [
@@ -405,7 +410,7 @@ export function PersonDetail() {
                             })}
                           </div>
 
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 560 }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             {TEAM_MEMBERS.filter(m => {
                               if (mgrSearch.trim() && !m.name.toLowerCase().includes(mgrSearch.toLowerCase()) && !m.title.toLowerCase().includes(mgrSearch.toLowerCase())) return false;
                               if (mgrFilterGroup && !m.groupIds.includes(mgrFilterGroup)) return false;
@@ -431,7 +436,7 @@ export function PersonDetail() {
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
                                         <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--text3)' }}>{member.title}</span>
                                         <span style={{ color: 'var(--border2)', fontSize: 10 }}>·</span>
-                                        <span style={{ fontSize: 11 }}>{ENTITY_FLAGS_D[member.entityId] ?? ''}</span>
+                                        <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: 'var(--text3)' }}>{entityLabelD(member.entityId)}</span>
                                         {groups.length > 0 && (
                                           <>
                                             <span style={{ color: 'var(--border2)', fontSize: 10 }}>·</span>
