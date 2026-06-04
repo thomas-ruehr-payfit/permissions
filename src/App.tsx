@@ -5,8 +5,6 @@ import { RootShell } from './components/layout/RootShell';
 import { AppShell } from './components/layout/AppShell';
 import { AutoPlaceholder } from './pages/AutoPlaceholder';
 import { InviteFlowPage } from './pages/OrgSettings/InviteFlow/index';
-import { AddManagerPage } from './pages/OrgSettings/ManagerFlow/index';
-import { ManagerDetail } from './pages/OrgSettings/ManagerDetail';
 
 // Employees
 import { Employees } from './pages/Employees/index';
@@ -60,8 +58,7 @@ export default function App() {
         <UsersProvider>
         <Routes>
           {/* Fully standalone — own top bar, no RootShell */}
-          <Route path="/org-settings/invite"       element={<InviteFlowPage />} />
-          <Route path="/org-settings/add-manager"  element={<AddManagerPage />} />
+          <Route path="/org-settings/invite" element={<InviteFlowPage />} />
 
           <Route element={<RootShell />}>
 
@@ -71,7 +68,6 @@ export default function App() {
             <Route path="entities" element={<Entities />} />
             <Route path="access-permissions" element={<AccessPermissions />} />
             <Route path="access-permissions/:userId" element={<PersonDetail />} />
-            <Route path="managers/:managerId" element={<ManagerDetail />} />
           </Route>
           <Route path="/integrations" element={<IntegrationsShell />}>
             <Route path="all"       element={<P />} />

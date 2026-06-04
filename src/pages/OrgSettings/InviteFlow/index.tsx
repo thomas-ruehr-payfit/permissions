@@ -31,8 +31,9 @@ function canProceed(step: number, invite: InviteState): boolean {
       return invite.pairs.length > 0 && invite.pairs.every(p => {
         if (!p.role) return false;
         if (p.role === 'org') return true;
-        if (p.perimeterTab === 'entity') return p.entityIds.length > 0;
-        return p.groupIds.length > 0;
+        if (p.role === 'mgr') return p.reports.length > 0;
+        if (p.role === 'hr') return p.entityIds.length > 0 || p.groupIds.length > 0;
+        return p.entityIds.length > 0;
       });
     case 3:
       return true;
@@ -78,8 +79,10 @@ export function InviteFlowPage() {
         let perimeter: AccessPair['perimeter'];
         if (p.role === 'org') {
           perimeter = { type: 'org' };
-        } else if (p.perimeterTab === 'group') {
-          perimeter = { type: 'group', groupIds: p.groupIds };
+        } else if (p.role === 'mgr') {
+          perimeter = { type: 'manager', reports: p.reports };
+        } else if (p.role === 'hr') {
+          perimeter = { type: 'entity-group', entityIds: p.entityIds, groupIds: p.groupIds };
         } else {
           perimeter = { type: 'entity', entityIds: p.entityIds };
         }

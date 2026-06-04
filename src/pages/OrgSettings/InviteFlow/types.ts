@@ -1,10 +1,13 @@
-import type { RoleKey } from '../../../data/mock-users';
+import type { RoleKey, ManagerReport } from '../../../data/mock-users';
 
 export interface InvitePair {
   role: RoleKey | null;
+  /** Payroll / Acct / HR — selected entities */
   entityIds: string[];
+  /** HR only — selected groups (additive with entities) */
   groupIds: string[];
-  perimeterTab: 'entity' | 'group';
+  /** Manager only — list of reports with per-person permissions */
+  reports: ManagerReport[];
 }
 
 export interface InviteState {
@@ -19,7 +22,7 @@ export const EMPTY_PAIR: InvitePair = {
   role: null,
   entityIds: [],
   groupIds: [],
-  perimeterTab: 'entity',
+  reports: [],
 };
 
 export const INITIAL_INVITE: InviteState = {

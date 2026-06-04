@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PayFit — Role Access Model</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+:root {
+  --bg: #F5F3EE;
+  --surface: #FFFFFF;
+  --border: rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.14);
+  --text: #1A1916;
+  --text2: #6B6760;
+  --text3: #A8A49E;
+  --org:        #5B4FD4;
+  --org-bg:     #EEEDFE;
+  --entity:     #0F6E56;
+  --entity-bg:  #E1F5EE;
+  --payroll:    #C04A1E;
+  --payroll-bg: #FAEEDA;
+  --hr:         #6C2E9A;
+  --hr-bg:      #F0E8F8;
+  --acct:       #1458A8;
+  --acct-bg:    #E6F1FB;
+  --mgr:        #5A5855;
+  --mgr-bg:     #F0EEE8;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  padding: 48px 40px 80px;
+}
+
+.header { margin-bottom: 40px; }
+.eyebrow { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text3); margin-bottom:10px; }
+.title { font-family:'Fraunces',serif; font-size:34px; font-weight:300; line-height:1.15; color:var(--text); margin-bottom:10px; }
+.subtitle { font-size:14px; color:var(--text2); line-height:1.6; max-width:540px; }
+
+.download-btn {
+  display:inline-flex; align-items:center; gap:8px;
+  font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500;
+  padding:9px 18px; background:var(--text); color:var(--bg);
+  border:none; border-radius:6px; cursor:pointer; transition:opacity 0.15s;
+  margin-top:18px;
+}
+.download-btn:hover { opacity:0.82; }
+.download-btn:disabled { opacity:0.4; cursor:default; }
+.dl-status { font-size:12px; color:var(--text3); margin-left:12px; font-family:'DM Mono',monospace; }
+
+.roles-row {
+  display:grid;
+  grid-template-columns: 200px repeat(5, 1fr);
+  gap:10px; margin-bottom:10px; align-items:end;
+}
+
+.role-pill { border-radius:8px; padding:13px 14px; display:flex; flex-direction:column; gap:4px; }
+.role-pill-name { font-size:13px; font-weight:500; line-height:1.3; }
+.role-pill-fr { font-family:'DM Mono',monospace; font-size:10px; opacity:0.65; }
+.challenge-badge { display:inline-block; font-family:'DM Mono',monospace; font-size:9px; padding:1px 5px; border-radius:3px; background:rgba(0,0,0,0.08); margin-top:3px; width:fit-content; }
+
+.matrix { display:flex; flex-direction:column; gap:3px; }
+
+.matrix-row {
+  display:grid;
+  grid-template-columns: 200px repeat(5, 1fr);
+  gap:10px; align-items:stretch; min-height:56px;
+}
+
+.row-label { display:flex; flex-direction:column; justify-content:center; padding:8px 0; }
+.row-label-name { font-size:13px; font-weight:500; color:var(--text); line-height:1.3; }
+.row-label-sub { font-size:12px; color:var(--text2); margin-top:2px; }
+
+.section-gap { height:24px; }
+.section-label {
+  font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--text3); padding:0 0 8px; border-bottom:0.5px solid var(--border2); margin-bottom:6px;
+  grid-column:1/-1;
+}
+
+.cell {
+  border-radius:6px; display:flex; align-items:center; justify-content:center;
+  min-height:56px; border:0.5px solid transparent; transition:all 0.15s;
+}
+.cell.yes { border-color:var(--cell-border); background:var(--cell-bg); }
+.cell.partial { border-color:var(--cell-border); background:var(--cell-bg); opacity:0.5; }
+.cell.no { background:transparent; border-color:transparent; }
+
+.cell-dot { width:10px; height:10px; border-radius:50%; background:var(--cell-color); }
+.cell.partial .cell-dot { width:8px; height:8px; opacity:0.7; }
+.cell-dash { width:14px; height:1.5px; background:var(--border2); border-radius:1px; }
+
+.scope-row {
+  display:grid; grid-template-columns:200px repeat(5, 1fr);
+  gap:10px; margin-top:32px; padding-top:20px; border-top:0.5px solid var(--border2);
+}
+.scope-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text3); display:flex; align-items:center; }
+.scope-cell { border-radius:6px; padding:9px 12px; font-size:12px; color:var(--cell-color); background:var(--cell-bg); border:0.5px solid var(--cell-border); line-height:1.5; font-family:'DM Mono',monospace; }
+
+.mgr-note { margin-top:16px; padding:14px 18px; background:var(--mgr-bg); border-radius:8px; border:0.5px solid var(--border2); display:flex; gap:16px; align-items:flex-start; }
+.mgr-note-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.06em; text-transform:uppercase; color:var(--mgr); padding-top:2px; white-space:nowrap; }
+.mgr-note-text { font-size:12px; color:var(--text2); line-height:1.6; }
+
+.legend { margin-top:32px; padding-top:20px; border-top:0.5px solid var(--border2); display:flex; gap:24px; flex-wrap:wrap; align-items:center; }
+.legend-item { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text2); }
+.legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.legend-dot-partial { width:8px; height:8px; border-radius:50%; background:var(--text3); opacity:0.5; flex-shrink:0; }
+.legend-dash { width:14px; height:1.5px; background:var(--border2); flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<div id="capture">
+
+  <div class="header">
+    <div class="eyebrow">Access &amp; Permissions — v1 working draft</div>
+    <h1 class="title">Role access model</h1>
+    <p class="subtitle">Which object categories each role can access. Overlapping access is intentional — roles share certain objects while owning distinct territories.</p>
+  </div>
+
+  <div class="roles-row" role="row" aria-label="Role headers">
+    <div aria-hidden="true"></div>
+    <div class="role-pill" style="background:var(--org-bg)" role="columnheader">
+      <div class="role-pill-name" style="color:var(--org)">Organisation Admin</div>
+      <div class="role-pill-fr" style="color:var(--org)">Admin Organisation</div>
+    </div>
+    <div class="role-pill" style="background:var(--entity-bg)" role="columnheader">
+      <div class="role-pill-name" style="color:var(--entity)">Entity Admin</div>
+      <div class="role-pill-fr" style="color:var(--entity)">Admin Établissement</div>
+    </div>
+    <div class="role-pill" style="background:var(--payroll-bg)" role="columnheader">
+      <div class="role-pill-name" style="color:var(--payroll)">Payroll Manager</div>
+      <div class="role-pill-fr" style="color:var(--payroll)">Gestionnaire Paie</div>
+      <div class="challenge-badge" style="color:var(--payroll)">To challenge</div>
+    </div>
+    <div class="role-pill" style="background:var(--hr-bg)" role="columnheader">
+      <div class="role-pill-name" style="color:var(--hr)">HR Manager</div>
+      <div class="role-pill-fr" style="color:var(--hr)">Gestionnaire RH</div>
+      <div class="challenge-badge" style="color:var(--hr)">To challenge</div>
+    </div>
+    <div class="role-pill" style="background:var(--acct-bg)" role="columnheader">
+      <div class="role-pill-name" style="color:var(--acct)">Accountant</div>
+      <div class="role-pill-fr" style="color:var(--acct)">Comptable</div>
+    </div>
+  </div>
+
+  <div class="matrix" id="matrix" role="table" aria-label="Role access matrix"></div>
+
+  <div class="scope-row" role="row" aria-label="Perimeter scope per role">
+    <div class="scope-label">Perimeter</div>
+    <div class="scope-cell" style="--cell-color:var(--org);--cell-bg:var(--org-bg);--cell-border:rgba(91,79,212,0.2)">Org-wide<br>Fixed</div>
+    <div class="scope-cell" style="--cell-color:var(--entity);--cell-bg:var(--entity-bg);--cell-border:rgba(15,110,86,0.2)">1 to all entities<br>Assigned</div>
+    <div class="scope-cell" style="--cell-color:var(--payroll);--cell-bg:var(--payroll-bg);--cell-border:rgba(192,74,30,0.2)">By entity<br>Assigned</div>
+    <div class="scope-cell" style="--cell-color:var(--hr);--cell-bg:var(--hr-bg);--cell-border:rgba(108,46,154,0.2)">Entity or group<br>Assigned</div>
+    <div class="scope-cell" style="--cell-color:var(--acct);--cell-bg:var(--acct-bg);--cell-border:rgba(20,88,168,0.2)">By entity<br>Assigned</div>
+  </div>
+
+  <div class="mgr-note" role="note" aria-label="Manager role note">
+    <div class="mgr-note-label">Manager</div>
+    <div class="mgr-note-text">Relationship-derived — not assignable as a role. Access to the manager space only (1:1s, absence approval, objectives). Perimeter = direct relationships defined in the org chart. Visible in the permissions UI as read-only.</div>
+  </div>
+
+  <div class="legend" role="note" aria-label="Legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--org)" aria-hidden="true"></div>Full access</div>
+    <div class="legend-item"><div class="legend-dot-partial" aria-hidden="true"></div>Partial / read-only</div>
+    <div class="legend-item"><div class="legend-dash" aria-hidden="true"></div>No access</div>
+  </div>
+
+</div>
+
+<div style="display:flex;align-items:center;margin-top:24px;">
+  <button class="download-btn" id="downloadBtn" onclick="exportPNG()">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1v8M4 7l3 3 3-3M1 10v1.5A1.5 1.5 0 002.5 13h9A1.5 1.5 0 0013 11.5V10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Export as PNG
+  </button>
+  <span class="dl-status" id="dlStatus" aria-live="polite"></span>
+</div>
+
+<script>
+const ROLES = ['org','entity','payroll','hr','acct'];
+
+const COLORS = {
+  org:     { color:'var(--org)',     bg:'var(--org-bg)',     border:'rgba(91,79,212,0.2)'  },
+  entity:  { color:'var(--entity)',  bg:'var(--entity-bg)',  border:'rgba(15,110,86,0.2)'  },
+  payroll: { color:'var(--payroll)', bg:'var(--payroll-bg)', border:'rgba(192,74,30,0.2)'  },
+  hr:      { color:'var(--hr)',      bg:'var(--hr-bg)',      border:'rgba(108,46,154,0.2)' },
+  acct:    { color:'var(--acct)',    bg:'var(--acct-bg)',    border:'rgba(20,88,168,0.2)'  },
+};
+
+const ROLE_LABELS = {
+  org:'Organisation Admin', entity:'Entity Admin',
+  payroll:'Payroll Manager', hr:'HR Manager', acct:'Accountant'
+};
+
+const SECTIONS = [
+  { label:'Organisation', rows:[
+    { name:'Add / remove entity',    sub:'Structure',      access:{ org:'yes', entity:'no',  payroll:'no',  hr:'no',      acct:'no'      }},
+    { name:'Invite & manage admins', sub:'Access control', access:{ org:'yes', entity:'no',  payroll:'no',  hr:'no',      acct:'no'      }},
+    { name:'Billing & subscription', sub:'PayFit account', access:{ org:'yes', entity:'no',  payroll:'no',  hr:'no',      acct:'partial' }},
+  ]},
+  { label:'Company settings', rows:[
+    { name:'Company identity',       sub:'Legal info',     access:{ org:'yes', entity:'yes', payroll:'no',  hr:'no',      acct:'no'      }},
+    { name:'Payroll configuration',  sub:'Closing, dates', access:{ org:'yes', entity:'yes', payroll:'yes', hr:'no',      acct:'no'      }},
+    { name:'Integrations & API',     sub:'Tools, banking', access:{ org:'yes', entity:'yes', payroll:'no',  hr:'no',      acct:'no'      }},
+    { name:'Benefit settings',       sub:'Mutuelle, prev.',access:{ org:'yes', entity:'yes', payroll:'no',  hr:'yes',     acct:'no'      }},
+  ]},
+  { label:'Payroll operations', rows:[
+    { name:'Payroll variables',      sub:'Bonuses, items', access:{ org:'yes', entity:'yes', payroll:'yes', hr:'no',      acct:'no'      }},
+    { name:'Payslips',               sub:'Per employee',   access:{ org:'yes', entity:'yes', payroll:'yes', hr:'yes',     acct:'no'      }},
+    { name:'Declarations',           sub:'DSN, DPAE',      access:{ org:'yes', entity:'yes', payroll:'yes', hr:'no',      acct:'yes'     }},
+    { name:'Payments',               sub:'Cotisations',    access:{ org:'yes', entity:'yes', payroll:'yes', hr:'no',      acct:'yes'     }},
+  ]},
+  { label:'HR & employees', rows:[
+    { name:'Employee list',          sub:'Team overview',  access:{ org:'yes', entity:'yes', payroll:'no',  hr:'yes',     acct:'no'      }},
+    { name:'Personal data',          sub:'Sensitive',      access:{ org:'yes', entity:'yes', payroll:'no',  hr:'yes',     acct:'no'      }},
+    { name:'Contracts & documents',  sub:'Legal docs',     access:{ org:'yes', entity:'yes', payroll:'no',  hr:'yes',     acct:'no'      }},
+    { name:'Onboarding',             sub:'New hires',      access:{ org:'yes', entity:'yes', payroll:'no',  hr:'yes',     acct:'no'      }},
+    { name:'Absences & time',        sub:'Leaves, hours',  access:{ org:'yes', entity:'yes', payroll:'yes', hr:'yes',     acct:'no'      }},
+  ]},
+  { label:'Reporting', rows:[
+    { name:'Reports & exports',      sub:'All companies',  access:{ org:'yes', entity:'yes', payroll:'no',  hr:'partial', acct:'yes'     }},
+    { name:'Accounting data',        sub:'Ledger exports', access:{ org:'yes', entity:'yes', payroll:'no',  hr:'no',      acct:'yes'     }},
+    { name:'Headcount analytics',    sub:'Workforce',      access:{ org:'yes', entity:'yes', payroll:'no',  hr:'yes',     acct:'partial' }},
+  ]},
+  { label:'Team management', rows:[
+    { name:'1:1s & objectives',      sub:'Performance',    access:{ org:'yes', entity:'yes', payroll:'no',  hr:'yes',     acct:'no'      }},
+    { name:'Absence approval',       sub:'Validation',     access:{ org:'yes', entity:'yes', payroll:'no',  hr:'yes',     acct:'no'      }},
+    { name:'Org chart',              sub:'Structure',      access:{ org:'yes', entity:'yes', payroll:'no',  hr:'yes',     acct:'no'      }},
+  ]},
+];
+
+function buildCell(role, access, rowName) {
+  const c = COLORS[role];
+  const label = ROLE_LABELS[role] + ': ' + (
+    access === 'yes'     ? 'full access to '         + rowName :
+    access === 'partial' ? 'partial access to '      + rowName :
+                           'no access to '           + rowName
+  );
+  if (access === 'yes') {
+    return '<div class="cell yes" style="--cell-bg:' + c.bg + ';--cell-border:' + c.border + ';--cell-color:' + c.color + '" role="cell" aria-label="' + label + '"><div class="cell-dot" aria-hidden="true"></div></div>';
+  } else if (access === 'partial') {
+    return '<div class="cell partial" style="--cell-bg:' + c.bg + ';--cell-border:' + c.border + ';--cell-color:' + c.color + '" role="cell" aria-label="' + label + '"><div class="cell-dot" aria-hidden="true"></div></div>';
+  } else {
+    return '<div class="cell no" role="cell" aria-label="' + label + '"><div class="cell-dash" aria-hidden="true"></div></div>';
+  }
+}
+
+const matrix = document.getElementById('matrix');
+let html = '';
+
+SECTIONS.forEach(function(section, si) {
+  if (si > 0) html += '<div class="section-gap"></div>';
+  html += '<div class="matrix-row" role="row"><div class="section-label" style="grid-column:1/-1">' + section.label + '</div></div>';
+  section.rows.forEach(function(row) {
+    html += '<div class="matrix-row" role="row">' +
+      '<div class="row-label" role="rowheader">' +
+        '<div class="row-label-name">' + row.name + '</div>' +
+        '<div class="row-label-sub">' + row.sub + '</div>' +
+      '</div>' +
+      ROLES.map(function(role) { return buildCell(role, row.access[role], row.name); }).join('') +
+    '</div>';
+  });
+});
+
+matrix.innerHTML = html;
+
+async function exportPNG() {
+  var btn = document.getElementById('downloadBtn');
+  var status = document.getElementById('dlStatus');
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  status.textContent = '';
+
+  try {
+    var el = document.getElementById('capture');
+    var canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#F5F3EE',
+      logging: false
+    });
+
+    var margin = 64;
+    var final = document.createElement('canvas');
+    final.width  = canvas.width  + margin * 2;
+    final.height = canvas.height + margin * 2;
+    var ctx = final.getContext('2d');
+    ctx.fillStyle = '#F5F3EE';
+    ctx.fillRect(0, 0, final.width, final.height);
+    ctx.drawImage(canvas, margin, margin);
+
+    var link = document.createElement('a');
+    link.download = 'payfit-role-access-model.png';
+    link.href = final.toDataURL('image/png');
+    link.click();
+    status.textContent = 'Downloaded.';
+  } catch(e) {
+    status.textContent = 'Export failed — try a screenshot instead.';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1v8M4 7l3 3 3-3M1 10v1.5A1.5 1.5 0 002.5 13h9A1.5 1.5 0 0013 11.5V10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Export as PNG';
+}
+</script>
+</body>
+</html>

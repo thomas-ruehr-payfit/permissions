@@ -58,7 +58,7 @@ export const ROLE_META: Record<RoleKey, { label: string; labelFr: string; color:
     labelFr: 'Manager',
     color: 'var(--mgr)',
     bg: 'var(--mgr-bg)',
-    description: 'Relationship-derived — not assignable. Manager space only: 1:1s, absences, objectives.',
+    description: 'Perimeter is a set of individual reports. Permissions are configured per person managed.',
   },
 };
 
@@ -231,14 +231,20 @@ export const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-export const ASSIGNABLE_ROLES: RoleKey[] = ['org', 'payroll', 'hr', 'acct'];
+export const ASSIGNABLE_ROLES: RoleKey[] = ['org', 'payroll', 'hr', 'acct', 'mgr'];
 
-export type PerimeterMode = 'fixed-org' | 'entity' | 'entity-or-group';
+export type PerimeterMode = 'fixed-org' | 'entity' | 'entity-and-group' | 'individual';
 
 export const PERIMETER_MODE: Record<RoleKey, PerimeterMode> = {
   org: 'fixed-org',
   payroll: 'entity',
-  hr: 'entity-or-group',
+  hr: 'entity-and-group',
   acct: 'entity',
-  mgr: 'fixed-org',
+  mgr: 'individual',
 };
+
+/**
+ * Roles blocked when org is already assigned.
+ * Org covers all admin access, but manager is a separate dimension and stays available.
+ */
+export const BLOCKED_BY_ORG: RoleKey[] = ['payroll', 'hr', 'acct'];
