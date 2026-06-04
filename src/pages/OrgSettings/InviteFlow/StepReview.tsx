@@ -1,4 +1,4 @@
-import { ORG_EMPLOYEES } from '../../../data/mock-users';
+import { TEAM_MEMBERS } from '../../../data/mock-users';
 import { ROLE_META } from '../../../data/role-access';
 import { ENTITIES, GROUPS } from '../../../data/mock-entities';
 import { TEAM_MEMBERS } from '../../../data/mock-users';
@@ -29,9 +29,8 @@ export function StepReview({ invite }: Props) {
   let initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   if (invite.whoType === 'existing' && invite.selectedEmployeeId) {
-    const emp = ORG_EMPLOYEES.find(e => e.id === invite.selectedEmployeeId)!;
-    name = emp.name; email = emp.email;
-    initials = emp.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+    const emp = TEAM_MEMBERS.find(e => e.id === invite.selectedEmployeeId);
+    if (emp) { name = emp.name; email = emp.email; initials = emp.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(); }
   }
 
   const firstMeta = invite.pairs[0]?.role ? ROLE_META[invite.pairs[0].role] : null;

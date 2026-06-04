@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUsers } from '../../../context/UsersContext';
-import { ORG_EMPLOYEES } from '../../../data/mock-users';
+import { TEAM_MEMBERS } from '../../../data/mock-users';
 import { StepWho } from './StepWho';
 import { StepAccess } from './StepAccess';
 import { StepReview } from './StepReview';
@@ -67,10 +67,8 @@ export function InviteFlowPage() {
     let initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
     if (invite.whoType === 'existing' && invite.selectedEmployeeId) {
-      const emp = ORG_EMPLOYEES.find(e => e.id === invite.selectedEmployeeId)!;
-      name = emp.name;
-      email = emp.email;
-      initials = emp.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+      const emp = TEAM_MEMBERS.find(e => e.id === invite.selectedEmployeeId);
+      if (emp) { name = emp.name; email = emp.email; initials = emp.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(); }
     }
 
     const access: AccessPair[] = invite.pairs
