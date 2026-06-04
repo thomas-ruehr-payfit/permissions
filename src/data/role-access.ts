@@ -30,7 +30,7 @@ export const ROLE_META: Record<RoleKey, { label: string; labelFr: string; color:
     labelFr: 'Admin Organisation',
     color: 'var(--org)',
     bg: 'var(--org-bg)',
-    description: 'Full access to everything, no restrictions. Can add entities and manage all admins.',
+    description: 'Full access to all features and data — except confidential conversations between managers and their reports. Can manage entities and all admin roles.',
   },
   payroll: {
     label: 'Payroll Manager',

@@ -33,6 +33,11 @@ export function StepAccess({ invite, setInvite }: Props) {
   const addPair = () =>
     setInvite(prev => ({ ...prev, pairs: [...prev.pairs, { ...EMPTY_PAIR }] }));
 
+  const assignedRoles = invite.pairs.map(p => p.role).filter(Boolean) as string[];
+  const hasOrg = assignedRoles.includes('org');
+  const allTaken = ASSIGNABLE_ROLES.every(r => assignedRoles.includes(r));
+  const canAddMore = !hasOrg && !allTaken;
+
   return (
     <div>
       <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 28, marginTop: 4 }}>
@@ -40,58 +45,66 @@ export function StepAccess({ invite, setInvite }: Props) {
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {invite.pairs.map((pair, pairIndex) => (
-          <div key={pairIndex}>
-            {pairIndex > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0' }}>
-                <div style={{ flex: 1, height: '0.5px', background: 'var(--border)' }} />
-                <button
-                  onClick={() => removePair(setInvite, pairIndex)}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    fontFamily: "'DM Mono', monospace", fontSize: 10,
-                    color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em',
-                    padding: 0, transition: 'color 0.1s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#C04A1E')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text3)')}
-                >
-                  Remove
-                </button>
-                <div style={{ flex: 1, height: '0.5px', background: 'var(--border)' }} />
-              </div>
-            )}
+        {invite.pairs.map((pair, pairIndex) => {
+          const takenByOthers = invite.pairs
+            .filter((_, i) => i !== pairIndex)
+            .map(p => p.role)
+            .filter(Boolean) as string[];
+          return (
+            <div key={pairIndex}>
+              {pairIndex > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0' }}>
+                  <div style={{ flex: 1, height: '0.5px', background: 'var(--border)' }} />
+                  <button
+                    onClick={() => removePair(setInvite, pairIndex)}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      fontFamily: "'DM Mono', monospace", fontSize: 10,
+                      color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em',
+                      padding: 0, transition: 'color 0.1s',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#C04A1E')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--text3)')}
+                  >
+                    Remove
+                  </button>
+                  <div style={{ flex: 1, height: '0.5px', background: 'var(--border)' }} />
+                </div>
+              )}
+              <PairEditor
+                pair={pair}
+                takenRoles={takenByOthers}
+                onChange={patch => updatePair(setInvite, pairIndex, patch)}
+              />
+            </div>
+          );
+        })}
 
-            <PairEditor
-              pair={pair}
-              onChange={patch => updatePair(setInvite, pairIndex, patch)}
-            />
-          </div>
-        ))}
-
-        <button
-          onClick={addPair}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '24px 0 4px',
-            fontSize: 12, color: 'var(--text3)',
-            transition: 'color 0.1s',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text2)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text3)')}
-        >
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-            <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-          </svg>
-          Add another role
-        </button>
+        {canAddMore && (
+          <button
+            onClick={addPair}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '24px 0 4px',
+              fontSize: 12, color: 'var(--text3)',
+              transition: 'color 0.1s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--text2)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text3)')}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
+            Add another role
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-function PairEditor({ pair, onChange }: { pair: InvitePair; onChange: (patch: Partial<InvitePair>) => void }) {
+function PairEditor({ pair, takenRoles, onChange }: { pair: InvitePair; takenRoles: string[]; onChange: (patch: Partial<InvitePair>) => void }) {
   const mode = pair.role ? PERIMETER_MODE[pair.role] : null;
   const isOrgRole = pair.role === 'org';
   const showTabs = mode === 'entity-or-group';
@@ -120,16 +133,19 @@ function PairEditor({ pair, onChange }: { pair: InvitePair; onChange: (patch: Pa
           {ASSIGNABLE_ROLES.map(role => {
             const m = ROLE_META[role];
             const isSelected = pair.role === role;
+            const isTaken = takenRoles.includes(role);
             return (
               <button
                 key={role}
-                onClick={() => onChange({ role, entityIds: [], groupIds: [], perimeterTab: 'entity' })}
+                onClick={() => !isTaken && onChange({ role, entityIds: [], groupIds: [], perimeterTab: 'entity' })}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 16,
                   padding: '12px 14px', borderRadius: 8, textAlign: 'left', width: '100%',
                   border: `1.5px solid ${isSelected ? m.color : 'var(--border2)'}`,
                   background: isSelected ? m.bg : 'transparent',
-                  cursor: 'pointer', transition: 'all 0.12s',
+                  cursor: isTaken ? 'not-allowed' : 'pointer',
+                  opacity: isTaken ? 0.35 : 1,
+                  transition: 'all 0.12s',
                 }}
               >
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />

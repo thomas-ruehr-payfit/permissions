@@ -300,9 +300,17 @@ export function PersonDetail() {
             /* Edit view */
             <div style={{ display: 'flex', flexDirection: 'column' }}>
 
+              {(() => {
+                const assignedRoles = edit ? edit.map(p => p.role) : [];
+                const hasOrg = assignedRoles.includes('org');
+                const allTaken = ASSIGNABLE_ROLES.every(r => assignedRoles.includes(r));
+                const canAddMore = !hasOrg && !allTaken;
+                return (
+                  <>
               {edit && edit.map((pair, pairIndex) => {
                 const pSkipPerimeter = pair.role === 'org';
                 const pShowTabs = PERIMETER_MODE[pair.role] === 'entity-or-group';
+                const takenByOthers = edit.filter((_, i) => i !== pairIndex).map(p => p.role);
 
                 return (
                   <div key={pairIndex}>
@@ -338,16 +346,19 @@ export function PersonDetail() {
                           {ASSIGNABLE_ROLES.map(role => {
                             const m = ROLE_META[role];
                             const isSelected = pair.role === role;
+                            const isTaken = takenByOthers.includes(role);
                             return (
                               <button
                                 key={role}
-                                onClick={() => updatePair(pairIndex, { role, entityIds: [], groupId: null, perimeterTab: 'entity' })}
+                                onClick={() => !isTaken && updatePair(pairIndex, { role, entityIds: [], groupIds: [], perimeterTab: 'entity' })}
                                 style={{
                                   display: 'flex', alignItems: 'center', gap: 12,
                                   padding: '11px 14px', borderRadius: 7, textAlign: 'left', width: '100%',
                                   border: `1.5px solid ${isSelected ? m.color : 'var(--border2)'}`,
                                   background: isSelected ? m.bg : 'transparent',
-                                  cursor: 'pointer', transition: 'all 0.1s',
+                                  cursor: isTaken ? 'not-allowed' : 'pointer',
+                                  opacity: isTaken ? 0.35 : 1,
+                                  transition: 'all 0.1s',
                                 }}
                               >
                                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
@@ -485,24 +496,28 @@ export function PersonDetail() {
                 );
               })}
 
-              {/* Add another role — de-emphasised */}
-              <button
-                onClick={addPair}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '20px 0 4px',
-                  fontSize: 12, color: 'var(--text3)',
-                  transition: 'color 0.1s',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'var(--text2)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text3)')}
-              >
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                </svg>
-                Add another role
-              </button>
+              {canAddMore && (
+                <button
+                  onClick={addPair}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '20px 0 4px',
+                    fontSize: 12, color: 'var(--text3)',
+                    transition: 'color 0.1s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--text2)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text3)')}
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                  </svg>
+                  Add another role
+                </button>
+              )}
+                  </>
+                );
+              })()}
             </div>
           )}
         </div>
