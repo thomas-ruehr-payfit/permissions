@@ -46,6 +46,25 @@ function availableRoles(assigned: string[]): RoleKey[] {
   return ASSIGNABLE_ROLES.filter(r => !isBlocked(r, assigned));
 }
 
+// ── Pair summary (for collapsed state) ───────────────────────────────────────
+
+function invitePairSummary(pair: InvitePair): string {
+  if (!pair.role) return 'Configure role…';
+  if (pair.role === 'org') return 'Org-wide';
+  if (pair.role === 'mgr') {
+    if (pair.reports.length === 0) return 'No reports configured';
+    const names = pair.reports.slice(0, 3).map(r => TEAM_MEMBERS.find(m => m.id === r.employeeId)?.name ?? r.employeeId);
+    return names.join(', ') + (pair.reports.length > 3 ? ` +${pair.reports.length - 3} more` : '');
+  }
+  const entities = pair.entityIds.map(id => {
+    const e = ENTITIES.find(en => en.id === id);
+    return e ? `${ENTITY_FLAGS[id] ?? ''} ${e.country}` : id;
+  });
+  const groups = pair.groupIds.map(id => GROUPS.find(g => g.id === id)?.name ?? id);
+  const all = [...entities, ...groups];
+  return all.length > 0 ? all.join(' · ') : 'No perimeter configured';
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function updatePair(
@@ -67,41 +86,64 @@ interface Props {
 }
 
 export function StepAccess({ invite, setInvite }: Props) {
+  const [activePairIndex, setActivePairIndex] = useState(0);
+
   const assigned = invite.pairs.map(p => p.role).filter(Boolean) as string[];
   const canAddMore = availableRoles(assigned).length > 0;
 
-  const addPair = () =>
+  const addPair = () => {
+    const newIndex = invite.pairs.length;
     setInvite(prev => ({ ...prev, pairs: [...prev.pairs, { ...EMPTY_PAIR }] }));
+    setActivePairIndex(newIndex);
+  };
 
-  const removePair = (index: number) =>
+  const removePair = (index: number) => {
     setInvite(prev => ({ ...prev, pairs: prev.pairs.filter((_, i) => i !== index) }));
+    setActivePairIndex(prev => (prev >= index ? Math.max(0, prev - 1) : prev));
+  };
 
   return (
     <div>
-      <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 28, marginTop: 4 }}>
+      <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 24, marginTop: 4 }}>
         Assign one or more role + perimeter combinations. Roles are complementary — each can appear once.
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {invite.pairs.map((pair, pairIndex) => {
+          const isActive = pairIndex === activePairIndex;
           const takenByOthers = invite.pairs
             .filter((_, i) => i !== pairIndex)
             .map(p => p.role).filter(Boolean) as string[];
 
+          if (!isActive && pair.role) {
+            return (
+              <CollapsedRoleCard
+                key={pairIndex}
+                label={ROLE_META[pair.role].label}
+                color={ROLE_META[pair.role].color}
+                summary={invitePairSummary(pair)}
+                onExpand={() => setActivePairIndex(pairIndex)}
+                onRemove={invite.pairs.length > 1 ? () => removePair(pairIndex) : undefined}
+              />
+            );
+          }
+
+          // Expanded
           return (
-            <div key={pairIndex}>
-              {pairIndex > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0' }}>
-                  <div style={{ flex: 1, height: '0.5px', background: 'var(--border)' }} />
+            <div key={pairIndex} style={{
+              border: '0.5px solid var(--border2)', borderRadius: 10,
+              padding: '20px', background: 'var(--surface)',
+            }}>
+              {invite.pairs.length > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
                   <button
                     onClick={() => removePair(pairIndex)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: 0, transition: 'color 0.1s' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontFamily: "'DM Mono', monospace", color: 'var(--text3)', padding: 0, transition: 'color 0.1s' }}
                     onMouseEnter={e => (e.currentTarget.style.color = '#C04A1E')}
                     onMouseLeave={e => (e.currentTarget.style.color = 'var(--text3)')}
                   >
-                    Remove
+                    Remove this role
                   </button>
-                  <div style={{ flex: 1, height: '0.5px', background: 'var(--border)' }} />
                 </div>
               )}
               <PairEditor
@@ -112,21 +154,74 @@ export function StepAccess({ invite, setInvite }: Props) {
             </div>
           );
         })}
-
-        {canAddMore && (
-          <button
-            onClick={addPair}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, padding: '24px 0 4px', fontSize: 12, color: 'var(--text3)', transition: 'color 0.1s' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'var(--text2)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text3)')}
-          >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-            </svg>
-            Add another role
-          </button>
-        )}
       </div>
+
+      {canAddMore && (
+        <button
+          onClick={addPair}
+          style={{
+            marginTop: 8, width: '100%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            padding: '13px 16px', borderRadius: 8,
+            border: '1px dashed var(--border2)', background: 'transparent',
+            fontSize: 13, color: 'var(--text2)', cursor: 'pointer', transition: 'all 0.1s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text3)'; e.currentTarget.style.color = 'var(--text)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text2)'; }}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          Add another role
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── Collapsed role card (shared visual) ───────────────────────────────────────
+
+export function CollapsedRoleCard({
+  label, color, summary, onExpand, onRemove,
+}: {
+  label: string;
+  color: string;
+  summary: string;
+  onExpand: () => void;
+  onRemove?: () => void;
+}) {
+  return (
+    <div
+      onClick={onExpand}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '12px 16px', borderRadius: 8, cursor: 'pointer',
+        border: '0.5px solid var(--border2)', background: 'var(--surface)',
+        transition: 'background 0.1s',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface)')}
+    >
+      <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{label}</div>
+        <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'DM Mono', monospace" }}>
+          {summary}
+        </div>
+      </div>
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style={{ color: 'var(--text3)', flexShrink: 0 }}>
+        <path d="M5 2l5 4.5L5 11" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+      {onRemove && (
+        <button
+          onClick={e => { e.stopPropagation(); onRemove(); }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 4, color: 'var(--text3)', fontSize: 16, lineHeight: 1, marginLeft: 4, flexShrink: 0 }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#C04A1E')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text3)')}
+        >
+          ×
+        </button>
+      )}
     </div>
   );
 }

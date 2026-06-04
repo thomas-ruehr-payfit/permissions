@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MultiSelectDropdown } from '../../components/ui/MultiSelectDropdown';
+import { CollapsedRoleCard } from './InviteFlow/StepAccess';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useUsers } from '../../context/UsersContext';
 import { ROLE_META, ASSIGNABLE_ROLES, PERIMETER_MODE, BLOCKED_BY_ORG } from '../../data/role-access';
@@ -8,6 +9,22 @@ import { TEAM_MEMBERS } from '../../data/mock-users';
 import type { RoleKey, AccessPair, ManagerPermissions, ManagerReport } from '../../data/mock-users';
 
 const ENTITY_FLAGS_D: Record<string, string> = { fr: '🇫🇷', es: '🇪🇸', uk: '🇬🇧' };
+
+function editPairSummary(pair: PairEditState): string {
+  if (pair.role === 'org') return 'Org-wide';
+  if (pair.role === 'mgr') {
+    if (pair.reports.length === 0) return 'No reports configured';
+    const names = pair.reports.slice(0, 3).map(r => TEAM_MEMBERS.find(m => m.id === r.employeeId)?.name ?? r.employeeId);
+    return names.join(', ') + (pair.reports.length > 3 ? ` +${pair.reports.length - 3} more` : '');
+  }
+  const entities = pair.entityIds.map(id => {
+    const e = ENTITIES.find(en => en.id === id);
+    return e ? `${ENTITY_FLAGS_D[id] ?? ''} ${e.country}` : id;
+  });
+  const groups = pair.groupIds.map(id => GROUPS.find(g => g.id === id)?.name ?? id);
+  const all = [...entities, ...groups];
+  return all.length > 0 ? all.join(' · ') : 'No perimeter configured';
+}
 
 function entityLabelD(id: string) {
   const e = ENTITIES.find(en => en.id === id);
@@ -71,6 +88,7 @@ export function PersonDetail() {
   const user = users.find(u => u.id === userId);
   const [isEditing, setIsEditing] = useState(false);
   const [edit, setEdit] = useState<PairEditState[] | null>(null);
+  const [activePairIndex, setActivePairIndex] = useState<number | null>(null);
   const [mgrSearch, setMgrSearch]               = useState('');
   const [mgrFilterGroups, setMgrFilterGroups]   = useState<string[]>([]);
   const [mgrFilterEntities, setMgrFilterEntities] = useState<string[]>([]);
@@ -79,8 +97,8 @@ export function PersonDetail() {
 
   const isPending = user.status === 'pending';
 
-  const startEdit = () => { setEdit(initEdit(user.access)); setIsEditing(true); };
-  const cancelEdit = () => { setIsEditing(false); setEdit(null); };
+  const startEdit = () => { setEdit(initEdit(user.access)); setActivePairIndex(null); setIsEditing(true); };
+  const cancelEdit = () => { setIsEditing(false); setEdit(null); setActivePairIndex(null); };
 
   const saveEdit = () => {
     if (!edit) return;
@@ -108,11 +126,19 @@ export function PersonDetail() {
   const updatePair = (i: number, patch: Partial<PairEditState>) =>
     setEdit(prev => prev ? prev.map((p, idx) => idx === i ? { ...p, ...patch } : p) : prev);
 
-  const addPair = () =>
-    setEdit(prev => prev ? [...prev, { role: 'payroll' as RoleKey, entityIds: [], groupIds: [], reports: [] }] : prev);
+  const addPair = () => {
+    setEdit(prev => {
+      if (!prev) return prev;
+      const newPairs = [...prev, { role: 'payroll' as RoleKey, entityIds: [], groupIds: [], reports: [] }];
+      setActivePairIndex(newPairs.length - 1);
+      return newPairs;
+    });
+  };
 
-  const removePair = (i: number) =>
+  const removePair = (i: number) => {
     setEdit(prev => prev && prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev);
+    setActivePairIndex(prev => prev === null ? null : prev >= i ? Math.max(0, prev - 1) : prev);
+  };
 
   const toggleEntity = (pairIdx: number, id: string) =>
     setEdit(prev => prev ? prev.map((p, i) => i !== pairIdx ? p : {
@@ -271,24 +297,36 @@ export function PersonDetail() {
 
           {/* ── EDIT VIEW ── */}
           {isEditing && edit && (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {edit.map((pair, pairIndex) => {
+                const isActive = pairIndex === activePairIndex;
                 const mode = PERIMETER_MODE[pair.role];
                 const takenByOthers = edit.filter((_, i) => i !== pairIndex).map(p => p.role);
                 const isRoleBlocked = (role: RoleKey) =>
                   takenByOthers.includes(role) || (takenByOthers.includes('org') && BLOCKED_BY_ORG.includes(role));
 
+                if (!isActive) {
+                  return (
+                    <CollapsedRoleCard
+                      key={pairIndex}
+                      label={ROLE_META[pair.role].label}
+                      color={ROLE_META[pair.role].color}
+                      summary={editPairSummary(pair)}
+                      onExpand={() => setActivePairIndex(pairIndex)}
+                      onRemove={edit.length > 1 ? () => removePair(pairIndex) : undefined}
+                    />
+                  );
+                }
+
                 return (
-                  <div key={pairIndex}>
-                    {pairIndex > 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
-                        <div style={{ flex: 1, height: '0.5px', background: 'var(--border)' }} />
-                        <button onClick={() => removePair(pairIndex)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', padding: 0, transition: 'color 0.1s' }}
+                  <div key={pairIndex} style={{ border: '0.5px solid var(--border2)', borderRadius: 10, padding: '20px', background: 'var(--surface)' }}>
+                    {edit.length > 1 && (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                        <button onClick={() => removePair(pairIndex)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontFamily: "'DM Mono', monospace", color: 'var(--text3)', padding: 0, transition: 'color 0.1s' }}
                           onMouseEnter={e => (e.currentTarget.style.color = '#C04A1E')}
                           onMouseLeave={e => (e.currentTarget.style.color = 'var(--text3)')}>
-                          Remove
+                          Remove this role
                         </button>
-                        <div style={{ flex: 1, height: '0.5px', background: 'var(--border)' }} />
                       </div>
                     )}
 
@@ -503,10 +541,21 @@ export function PersonDetail() {
               })}
 
               {canAddMore && (
-                <button onClick={addPair} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, padding: '20px 0 4px', fontSize: 12, color: 'var(--text3)', transition: 'color 0.1s' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--text2)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text3)')}>
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+                <button
+                  onClick={addPair}
+                  style={{
+                    width: '100%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    padding: '13px 16px', borderRadius: 8,
+                    border: '1px dashed var(--border2)', background: 'transparent',
+                    fontSize: 13, color: 'var(--text2)', cursor: 'pointer', transition: 'all 0.1s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text3)'; e.currentTarget.style.color = 'var(--text)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.color = 'var(--text2)'; }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
                   Add another role
                 </button>
               )}
