@@ -8,13 +8,26 @@ import type { RoleKey, AccessPair, ManagerPermissions, ManagerReport } from '../
 
 // ── Permission defs ───────────────────────────────────────────────────────────
 
-const PERM_DEFS: { key: keyof ManagerPermissions; label: string; description: string }[] = [
-  { key: 'validateAbsences',    label: 'Validate absences',       description: 'Approve employee absence requests'  },
-  { key: 'validateExpenses',    label: 'Validate expense reports', description: 'Approve employee expense claims'    },
-  { key: 'validateTimeReports', label: 'Validate time tracking',  description: 'Approve time tracking entries'      },
-  { key: 'viewAbsences',        label: 'View absences',           description: 'See employee absence records'       },
-  { key: 'viewSalary',          label: 'View salary',             description: 'See employee compensation data'     },
+const PERM_GROUPS: { label: string; items: { key: keyof ManagerPermissions; label: string; description: string }[] }[] = [
+  {
+    label: 'Validation',
+    items: [
+      { key: 'validateAbsences',    label: 'Validate absences',       description: 'Approve employee absence requests' },
+      { key: 'validateExpenses',    label: 'Validate expense reports', description: 'Approve employee expense claims'   },
+      { key: 'validateTimeReports', label: 'Validate time tracking',  description: 'Approve time tracking entries'     },
+    ],
+  },
+  {
+    label: 'Visualisation',
+    items: [
+      { key: 'viewAbsences', label: 'View absences', description: 'See employee absence records'   },
+      { key: 'viewSalary',   label: 'View salary',   description: 'See employee compensation data' },
+    ],
+  },
 ];
+
+// Flat list for read view
+const PERM_DEFS = PERM_GROUPS.flatMap(g => g.items);
 
 const EMPTY_PERMS: ManagerPermissions = { validateAbsences: false, validateExpenses: false, validateTimeReports: false, viewAbsences: false, viewSalary: false };
 const ENTITY_FLAGS: Record<string, string> = { fr: '🇫🇷', es: '🇪🇸', uk: '🇬🇧' };
@@ -389,16 +402,29 @@ export function PersonDetail() {
                                     </div>
                                   </label>
                                   {isChecked && report && (
-                                    <div style={{ padding: '0 14px 10px 38px', display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                                      {PERM_DEFS.map(perm => {
-                                        const active = report.permissions[perm.key];
-                                        return (
-                                          <button key={perm.key} onClick={() => toggleReportPerm(pairIndex, member.id, perm.key)}
-                                            style={{ padding: '3px 9px', borderRadius: 4, fontSize: 11, border: `1px solid ${active ? 'var(--mgr)' : 'var(--border2)'}`, background: active ? 'var(--mgr)' : 'transparent', color: active ? 'white' : 'var(--text3)', cursor: 'pointer', transition: 'all 0.1s', fontFamily: "'DM Mono', monospace" }}>
-                                            {perm.label}
-                                          </button>
-                                        );
-                                      })}
+                                    <div style={{ borderTop: '0.5px solid var(--border)' }}>
+                                      {PERM_GROUPS.map((group, gi) => (
+                                        <div key={group.label}>
+                                          <div style={{ padding: '8px 14px 4px', fontSize: 10, fontFamily: "'DM Mono', monospace", color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', borderTop: gi > 0 ? '0.5px solid var(--border)' : 'none' }}>
+                                            {group.label}
+                                          </div>
+                                          {group.items.map(perm => {
+                                            const active = report.permissions[perm.key];
+                                            return (
+                                              <label key={perm.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 14px', cursor: 'pointer', borderTop: '0.5px solid var(--border)', background: active ? 'rgba(108,46,154,0.04)' : 'transparent', transition: 'background 0.1s' }}>
+                                                <input type="checkbox" checked={active} onChange={() => toggleReportPerm(pairIndex, member.id, perm.key)} style={{ display: 'none' }} />
+                                                <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 1, border: `1.5px solid ${active ? 'var(--mgr)' : 'var(--border2)'}`, background: active ? 'var(--mgr)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.1s' }}>
+                                                  {active && <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                                </div>
+                                                <div>
+                                                  <div style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text)' }}>{perm.label}</div>
+                                                  <div style={{ fontSize: 11.5, color: 'var(--text2)', marginTop: 1 }}>{perm.description}</div>
+                                                </div>
+                                              </label>
+                                            );
+                                          })}
+                                        </div>
+                                      ))}
                                     </div>
                                   )}
                                 </div>
