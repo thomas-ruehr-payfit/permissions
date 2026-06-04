@@ -6,6 +6,8 @@ import { ENTITIES, GROUPS } from '../../data/mock-entities';
 import { TEAM_MEMBERS } from '../../data/mock-users';
 import type { RoleKey, AccessPair, ManagerPermissions, ManagerReport } from '../../data/mock-users';
 
+const ENTITY_FLAGS_D: Record<string, string> = { fr: '🇫🇷', es: '🇪🇸', uk: '🇬🇧' };
+
 // ── Permission defs ───────────────────────────────────────────────────────────
 
 const PERM_GROUPS: { label: string; items: { key: keyof ManagerPermissions; label: string; description: string }[] }[] = [
@@ -63,7 +65,9 @@ export function PersonDetail() {
   const user = users.find(u => u.id === userId);
   const [isEditing, setIsEditing] = useState(false);
   const [edit, setEdit] = useState<PairEditState[] | null>(null);
-  const [mgrSearch, setMgrSearch] = useState('');
+  const [mgrSearch, setMgrSearch]           = useState('');
+  const [mgrFilterGroup, setMgrFilterGroup] = useState<string | null>(null);
+  const [mgrFilterEntity, setMgrFilterEntity] = useState<string | null>(null);
 
   if (!user) { navigate('/org-settings/access-permissions'); return null; }
 
@@ -380,15 +384,41 @@ export function PersonDetail() {
                         <div>
                           <div style={{ ...fieldLabel, marginBottom: 4 }}>Direct reports</div>
                           <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>Select employees and set per-person permissions.</p>
-                          <input value={mgrSearch} onChange={e => setMgrSearch(e.target.value)} placeholder="Search…"
-                            style={{ width: '100%', maxWidth: 400, padding: '7px 10px', borderRadius: 5, border: '0.5px solid var(--border2)', background: 'var(--surface)', fontSize: 12, color: 'var(--text)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 8, transition: 'border-color 0.1s' }}
+
+                          {/* Search + filters */}
+                          <input value={mgrSearch} onChange={e => setMgrSearch(e.target.value)} placeholder="Search by name or role…"
+                            style={{ width: '100%', maxWidth: 560, padding: '7px 10px', borderRadius: 5, border: '0.5px solid var(--border2)', background: 'var(--surface)', fontSize: 12, color: 'var(--text)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 8, transition: 'border-color 0.1s' }}
                             onFocus={e => (e.currentTarget.style.borderColor = 'var(--text)')}
                             onBlur={e => (e.currentTarget.style.borderColor = 'var(--border2)')}
                           />
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 500 }}>
-                            {TEAM_MEMBERS.filter(m => !mgrSearch.trim() || m.name.toLowerCase().includes(mgrSearch.toLowerCase()) || m.title.toLowerCase().includes(mgrSearch.toLowerCase())).map(member => {
+                          {/* Filters */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
+                            {[null, ...GROUPS.map(g => g.id)].map(id => {
+                              const label = id ? GROUPS.find(g => g.id === id)!.name : 'All teams';
+                              const active = mgrFilterGroup === id;
+                              return <button key={id ?? 'all'} onClick={() => setMgrFilterGroup(id)} style={filterPill(active)}>{label}</button>;
+                            })}
+                            <div style={{ width: '0.5px', background: 'var(--border2)', margin: '0 2px' }} />
+                            {[null, 'fr', 'es', 'uk'].map(id => {
+                              const active = mgrFilterEntity === id;
+                              return <button key={id ?? 'all-e'} onClick={() => setMgrFilterEntity(id)} style={filterPill(active)}>{id ? ENTITY_FLAGS_D[id] : 'All entities'}</button>;
+                            })}
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 560 }}>
+                            {TEAM_MEMBERS.filter(m => {
+                              if (mgrSearch.trim() && !m.name.toLowerCase().includes(mgrSearch.toLowerCase()) && !m.title.toLowerCase().includes(mgrSearch.toLowerCase())) return false;
+                              if (mgrFilterGroup && !m.groupIds.includes(mgrFilterGroup)) return false;
+                              if (mgrFilterEntity && m.entityId !== mgrFilterEntity) return false;
+                              return true;
+                            }).map(member => {
                               const report = pair.reports.find(r => r.employeeId === member.id);
                               const isChecked = !!report;
+                              const groups = GROUPS.filter(g => member.groupIds.includes(g.id));
+                              // Find if another user (not the current one being edited) manages this member
+                              const existingManager = users
+                                .filter(u => u.id !== user.id)
+                                .find(u => u.access.some(a => a.perimeter.type === 'manager' && a.perimeter.reports.some(r => r.employeeId === member.id)));
                               return (
                                 <div key={member.id} style={{ borderRadius: 8, border: `1.5px solid ${isChecked ? 'var(--mgr)' : 'var(--border2)'}`, background: isChecked ? 'var(--mgr-bg)' : 'transparent', transition: 'all 0.1s', overflow: 'hidden' }}>
                                   <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer' }}>
@@ -398,9 +428,35 @@ export function PersonDetail() {
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                       <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{member.name}</div>
-                                      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>{member.title}</div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
+                                        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--text3)' }}>{member.title}</span>
+                                        <span style={{ color: 'var(--border2)', fontSize: 10 }}>·</span>
+                                        <span style={{ fontSize: 11 }}>{ENTITY_FLAGS_D[member.entityId] ?? ''}</span>
+                                        {groups.length > 0 && (
+                                          <>
+                                            <span style={{ color: 'var(--border2)', fontSize: 10 }}>·</span>
+                                            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--text3)' }}>{groups.map(g => g.name).join(', ')}</span>
+                                          </>
+                                        )}
+                                      </div>
                                     </div>
+                                    {existingManager && !isChecked && (
+                                      <span style={{ fontSize: 10, fontFamily: "'DM Mono', monospace", color: '#9A6B00', background: 'rgba(196,140,40,0.1)', padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}>
+                                        ↳ {existingManager.name}
+                                      </span>
+                                    )}
                                   </label>
+                                  {isChecked && existingManager && (
+                                    <div style={{ margin: '0 14px 10px', padding: '9px 12px', borderRadius: 6, background: 'rgba(196,140,40,0.08)', border: '0.5px solid rgba(196,140,40,0.3)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                                      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
+                                        <path d="M7 1.5L1 12.5h12L7 1.5z" stroke="#9A6B00" strokeWidth="1.2" strokeLinejoin="round"/>
+                                        <path d="M7 5.5v3M7 10v.5" stroke="#9A6B00" strokeWidth="1.2" strokeLinecap="round"/>
+                                      </svg>
+                                      <span style={{ fontSize: 12, color: '#7A5000', lineHeight: 1.4 }}>
+                                        Currently managed by <strong>{existingManager.name}</strong>. Assigning them here will replace their current manager.
+                                      </span>
+                                    </div>
+                                  )}
                                   {isChecked && report && (
                                     <div style={{ borderTop: '0.5px solid var(--border)' }}>
                                       {PERM_GROUPS.map((group, gi) => (
@@ -476,6 +532,15 @@ function EditCheckbox({ checked }: { checked: boolean }) {
     </div>
   );
 }
+
+const filterPill = (active: boolean): React.CSSProperties => ({
+  padding: '3px 10px', borderRadius: 20, fontSize: 11.5,
+  border: `1px solid ${active ? 'var(--text)' : 'var(--border2)'}`,
+  background: active ? 'var(--text)' : 'transparent',
+  color: active ? 'white' : 'var(--text2)',
+  cursor: 'pointer', transition: 'all 0.1s',
+  fontFamily: "'DM Mono', monospace",
+});
 
 const chipStyle: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 7,

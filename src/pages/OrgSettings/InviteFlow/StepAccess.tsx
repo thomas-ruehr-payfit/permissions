@@ -6,6 +6,7 @@ import { ASSIGNABLE_ROLES, ROLE_META, PERIMETER_MODE, BLOCKED_BY_ORG } from '../
 import type { RoleKey } from '../../../data/mock-users';
 import type { InviteState, InvitePair } from './types';
 import { EMPTY_PAIR } from './types';
+import { useUsers } from '../../../context/UsersContext';
 
 // ── Permission definitions ────────────────────────────────────────────────────
 
@@ -232,13 +233,31 @@ function PairEditor({
 
 // ── Manager perimeter editor ──────────────────────────────────────────────────
 
+const ENTITY_FLAGS: Record<string, string> = { fr: '🇫🇷', es: '🇪🇸', uk: '🇬🇧' };
+
 function ManagerPerimeterEditor({
   reports, onChange,
 }: {
   reports: ManagerReport[];
   onChange: (reports: ManagerReport[]) => void;
 }) {
-  const [search, setSearch] = useState('');
+  const { users } = useUsers();
+  const [search, setSearch]           = useState('');
+  const [filterGroup, setFilterGroup] = useState<string | null>(null);
+  const [filterEntity, setFilterEntity] = useState<string | null>(null);
+  const [filterMgr, setFilterMgr]     = useState<'all' | 'with' | 'without'>('all');
+
+  // Build employeeId → current manager name map
+  const managerOf: Record<string, string> = {};
+  for (const user of users) {
+    for (const pair of user.access) {
+      if (pair.perimeter.type === 'manager') {
+        for (const report of pair.perimeter.reports) {
+          managerOf[report.employeeId] = user.name;
+        }
+      }
+    }
+  }
 
   const selectedIds = reports.map(r => r.employeeId);
 
@@ -256,9 +275,14 @@ function ManagerPerimeterEditor({
     ));
   };
 
-  const filtered = search.trim()
-    ? TEAM_MEMBERS.filter(m => m.name.toLowerCase().includes(search.toLowerCase()) || m.title.toLowerCase().includes(search.toLowerCase()))
-    : TEAM_MEMBERS;
+  const filtered = TEAM_MEMBERS.filter(m => {
+    if (search.trim() && !m.name.toLowerCase().includes(search.toLowerCase()) && !m.title.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterGroup && !m.groupIds.includes(filterGroup)) return false;
+    if (filterEntity && m.entityId !== filterEntity) return false;
+    if (filterMgr === 'with' && !managerOf[m.id]) return false;
+    if (filterMgr === 'without' && managerOf[m.id]) return false;
+    return true;
+  });
 
   return (
     <div>
@@ -266,19 +290,65 @@ function ManagerPerimeterEditor({
       <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 14, marginTop: -4 }}>
         Select employees this manager is responsible for. Set permissions per person.
       </p>
+
+      {/* Search */}
       <input
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        placeholder="Search by name or role…"
-        style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '0.5px solid var(--border2)', background: 'var(--surface)', fontSize: 12.5, color: 'var(--text)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 8, transition: 'border-color 0.1s' }}
+        value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or role…"
+        style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '0.5px solid var(--border2)', background: 'var(--surface)', fontSize: 12.5, color: 'var(--text)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 10, transition: 'border-color 0.1s' }}
         onFocus={e => (e.currentTarget.style.borderColor = 'var(--text)')}
         onBlur={e => (e.currentTarget.style.borderColor = 'var(--border2)')}
       />
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 520 }}>
+      {/* Filters */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+        {/* Team filters */}
+        {[null, ...GROUPS.map(g => g.id)].map(id => {
+          const label = id ? GROUPS.find(g => g.id === id)!.name : 'All teams';
+          const active = filterGroup === id;
+          return (
+            <button key={id ?? 'all'} onClick={() => setFilterGroup(id)}
+              style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11.5, border: `1px solid ${active ? 'var(--text)' : 'var(--border2)'}`, background: active ? 'var(--text)' : 'transparent', color: active ? 'white' : 'var(--text2)', cursor: 'pointer', transition: 'all 0.1s', fontFamily: "'DM Mono', monospace" }}>
+              {label}
+            </button>
+          );
+        })}
+
+        <div style={{ width: '0.5px', background: 'var(--border2)', margin: '0 2px' }} />
+
+        {/* Entity filters */}
+        {[null, 'fr', 'es', 'uk'].map(id => {
+          const active = filterEntity === id;
+          return (
+            <button key={id ?? 'all-ent'} onClick={() => setFilterEntity(id)}
+              style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11.5, border: `1px solid ${active ? 'var(--text)' : 'var(--border2)'}`, background: active ? 'var(--text)' : 'transparent', color: active ? 'white' : 'var(--text2)', cursor: 'pointer', transition: 'all 0.1s', fontFamily: "'DM Mono', monospace" }}>
+              {id ? ENTITY_FLAGS[id] : 'All entities'}
+            </button>
+          );
+        })}
+
+        <div style={{ width: '0.5px', background: 'var(--border2)', margin: '0 2px' }} />
+
+        {/* Manager filter */}
+        {(['all', 'with', 'without'] as const).map(val => {
+          const labels = { all: 'All', with: 'Has manager', without: 'No manager' };
+          const active = filterMgr === val;
+          return (
+            <button key={val} onClick={() => setFilterMgr(val)}
+              style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11.5, border: `1px solid ${active ? 'var(--text)' : 'var(--border2)'}`, background: active ? 'var(--text)' : 'transparent', color: active ? 'white' : 'var(--text2)', cursor: 'pointer', transition: 'all 0.1s', fontFamily: "'DM Mono', monospace" }}>
+              {labels[val]}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Employee list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 560 }}>
         {filtered.map(member => {
           const report = reports.find(r => r.employeeId === member.id);
           const isChecked = !!report;
+          const currentManager = managerOf[member.id];
+          const groups = GROUPS.filter(g => member.groupIds.includes(g.id));
+
           return (
             <div key={member.id} style={{
               borderRadius: 8, border: `1.5px solid ${isChecked ? 'var(--mgr)' : 'var(--border2)'}`,
@@ -289,41 +359,54 @@ function ManagerPerimeterEditor({
                 <Checkbox checked={isChecked} color="var(--mgr)" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{member.name}</div>
-                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>{member.title}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: 'var(--text3)' }}>{member.title}</span>
+                    <span style={{ color: 'var(--border2)', fontSize: 11 }}>·</span>
+                    <span style={{ fontSize: 12 }}>{ENTITY_FLAGS[member.entityId] ?? ''}</span>
+                    {groups.length > 0 && (
+                      <>
+                        <span style={{ color: 'var(--border2)', fontSize: 11 }}>·</span>
+                        <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: 'var(--text3)' }}>
+                          {groups.map(g => g.name).join(', ')}
+                        </span>
+                      </>
+                    )}
+                  </div>
                 </div>
+                {currentManager && !isChecked && (
+                  <span style={{ fontSize: 10.5, fontFamily: "'DM Mono', monospace", color: '#9A6B00', background: 'rgba(196,140,40,0.1)', padding: '2px 7px', borderRadius: 4, flexShrink: 0 }}>
+                    ↳ {currentManager}
+                  </span>
+                )}
               </label>
+
+              {/* Manager replacement warning */}
+              {isChecked && currentManager && (
+                <div style={{ margin: '0 14px 10px', padding: '9px 12px', borderRadius: 6, background: 'rgba(196,140,40,0.08)', border: '0.5px solid rgba(196,140,40,0.3)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
+                    <path d="M7 1.5L1 12.5h12L7 1.5z" stroke="#9A6B00" strokeWidth="1.2" strokeLinejoin="round"/>
+                    <path d="M7 5.5v3M7 10v.5" stroke="#9A6B00" strokeWidth="1.2" strokeLinecap="round"/>
+                  </svg>
+                  <span style={{ fontSize: 12, color: '#7A5000', lineHeight: 1.4 }}>
+                    Currently managed by <strong>{currentManager}</strong>. Assigning them here will replace their current manager.
+                  </span>
+                </div>
+              )}
 
               {/* Inline permissions when checked */}
               {isChecked && report && (
                 <div style={{ borderTop: '0.5px solid var(--border)' }}>
                   {PERM_GROUPS.map((group, gi) => (
                     <div key={group.label}>
-                      <div style={{
-                        padding: '8px 14px 4px',
-                        fontSize: 10, fontFamily: "'DM Mono', monospace",
-                        color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em',
-                        borderTop: gi > 0 ? '0.5px solid var(--border)' : 'none',
-                      }}>
+                      <div style={{ padding: '8px 14px 4px', fontSize: 10, fontFamily: "'DM Mono', monospace", color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', borderTop: gi > 0 ? '0.5px solid var(--border)' : 'none' }}>
                         {group.label}
                       </div>
                       {group.items.map(perm => {
                         const active = report.permissions[perm.key];
                         return (
-                          <label key={perm.key} style={{
-                            display: 'flex', alignItems: 'flex-start', gap: 12,
-                            padding: '10px 14px', cursor: 'pointer',
-                            borderTop: '0.5px solid var(--border)',
-                            background: active ? 'rgba(108,46,154,0.04)' : 'transparent',
-                            transition: 'background 0.1s',
-                          }}>
+                          <label key={perm.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 14px', cursor: 'pointer', borderTop: '0.5px solid var(--border)', background: active ? 'rgba(108,46,154,0.04)' : 'transparent', transition: 'background 0.1s' }}>
                             <input type="checkbox" checked={active} onChange={() => togglePerm(member.id, perm.key)} style={{ display: 'none' }} />
-                            <div style={{
-                              width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 1,
-                              border: `1.5px solid ${active ? 'var(--mgr)' : 'var(--border2)'}`,
-                              background: active ? 'var(--mgr)' : 'white',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              transition: 'all 0.1s',
-                            }}>
+                            <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, marginTop: 1, border: `1.5px solid ${active ? 'var(--mgr)' : 'var(--border2)'}`, background: active ? 'var(--mgr)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.1s' }}>
                               {active && <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2 4-4" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                             </div>
                             <div>

@@ -156,18 +156,18 @@ export const MOCK_USERS: AdminUser[] = [
 
 // ── Employee pools ────────────────────────────────────────────────────────────
 
-/** Employees who can be selected as manager reports */
+/** All collaborators — used for admin invite pool and manager report selection */
 export const TEAM_MEMBERS = [
-  { id: 't1',  name: 'Alice Martin',    email: 'alice.martin@acme.com',   title: 'Frontend Engineer'   },
-  { id: 't2',  name: 'Baptiste Leroy',  email: 'baptiste.leroy@acme.com', title: 'Backend Engineer'    },
-  { id: 't3',  name: 'Camille Durand',  email: 'camille.durand@acme.com', title: 'Product Designer'    },
-  { id: 't4',  name: 'David Chen',      email: 'david.chen@acme.com',     title: 'HR Business Partner' },
-  { id: 't5',  name: 'Emma Roux',       email: 'emma.roux@acme.com',      title: 'Recruiter'           },
-  { id: 't6',  name: 'François Blanc',  email: 'f.blanc@acme.com',        title: 'Finance Controller'  },
-  { id: 't7',  name: 'Grace Kim',       email: 'grace.kim@acme.com',      title: 'Accountant'          },
-  { id: 't8',  name: 'Hugo Perrin',     email: 'hugo.perrin@acme.com',    title: 'Remote Engineer'     },
-  { id: 't9',  name: 'Isabelle Morin',  email: 'i.morin@acme.com',        title: 'Sales Manager'       },
-  { id: 't10', name: 'Jules Garnier',   email: 'jules.garnier@acme.com',  title: 'DevOps Engineer'     },
+  { id: 't1',  name: 'Alice Martin',    email: 'alice.martin@acme.com',   title: 'Frontend Engineer',   groupIds: ['eng'],           entityId: 'fr' },
+  { id: 't2',  name: 'Baptiste Leroy',  email: 'baptiste.leroy@acme.com', title: 'Backend Engineer',    groupIds: ['eng'],           entityId: 'fr' },
+  { id: 't3',  name: 'Camille Durand',  email: 'camille.durand@acme.com', title: 'Product Designer',    groupIds: ['eng'],           entityId: 'es' },
+  { id: 't4',  name: 'David Chen',      email: 'david.chen@acme.com',     title: 'HR Business Partner', groupIds: ['people'],        entityId: 'fr' },
+  { id: 't5',  name: 'Emma Roux',       email: 'emma.roux@acme.com',      title: 'Recruiter',           groupIds: ['people'],        entityId: 'uk' },
+  { id: 't6',  name: 'François Blanc',  email: 'f.blanc@acme.com',        title: 'Finance Controller',  groupIds: ['finance'],       entityId: 'fr' },
+  { id: 't7',  name: 'Grace Kim',       email: 'grace.kim@acme.com',      title: 'Accountant',          groupIds: ['finance'],       entityId: 'uk' },
+  { id: 't8',  name: 'Hugo Perrin',     email: 'hugo.perrin@acme.com',    title: 'Remote Engineer',     groupIds: ['eng', 'remote'], entityId: 'uk' },
+  { id: 't9',  name: 'Isabelle Morin',  email: 'i.morin@acme.com',        title: 'Sales Manager',       groupIds: ['remote'],        entityId: 'es' },
+  { id: 't10', name: 'Jules Garnier',   email: 'jules.garnier@acme.com',  title: 'DevOps Engineer',     groupIds: ['eng'],           entityId: 'fr' },
 ];
 
 /** Employees who can be invited as admins */
