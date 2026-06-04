@@ -1,7 +1,6 @@
 import { TEAM_MEMBERS } from '../../../data/mock-users';
 import { ROLE_META } from '../../../data/role-access';
 import { ENTITIES, GROUPS } from '../../../data/mock-entities';
-import { TEAM_MEMBERS } from '../../../data/mock-users';
 import type { InviteState, InvitePair } from './types';
 
 const ENTITY_FLAGS: Record<string, string> = { fr: '🇫🇷', es: '🇪🇸', uk: '🇬🇧' };

@@ -15,7 +15,7 @@ const ALL_SECTIONS: SectionConfig[] = [
     id: 'billing',
     label: 'Billing',
     path: '/org-settings/billing',
-    visibleTo: ['org', 'entity'],
+    visibleTo: ['org', 'payroll'],
     icon: (
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
         <rect x="1.5" y="3.5" width="12" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.2"/>
