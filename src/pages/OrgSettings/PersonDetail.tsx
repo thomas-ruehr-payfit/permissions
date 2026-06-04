@@ -9,7 +9,8 @@ import type { AccessPair } from '../../data/mock-users';
 interface PairEditState {
   role: RoleKey;
   entityIds: string[];
-  groupId: string | null;
+  exclude: boolean;
+  groupIds: string[];
   perimeterTab: 'entity' | 'group';
 }
 
@@ -19,7 +20,8 @@ function initEdit(access: AccessPair[]): PairEditState[] {
     return {
       role: pair.role,
       entityIds: p.type === 'entity' ? (p.entityIds ?? []) : [],
-      groupId: p.type === 'group' ? (p.groupId ?? null) : null,
+      exclude: p.exclude ?? false,
+      groupIds: p.type === 'group' ? (p.groupIds ?? []) : [],
       perimeterTab: p.type === 'group' ? 'group' : 'entity',
     };
   });
@@ -58,10 +60,10 @@ export function PersonDetail() {
       let perimeter: AccessPair['perimeter'];
       if (p.role === 'org') {
         perimeter = { type: 'org' };
-      } else if (p.perimeterTab === 'group' && p.groupId) {
-        perimeter = { type: 'group', groupId: p.groupId };
+      } else if (p.perimeterTab === 'group') {
+        perimeter = { type: 'group', groupIds: p.groupIds, ...(p.exclude ? { exclude: true } : {}) };
       } else {
-        perimeter = { type: 'entity', entityIds: p.entityIds };
+        perimeter = { type: 'entity', entityIds: p.entityIds, ...(p.exclude ? { exclude: true } : {}) };
       }
       return { role: p.role, perimeter };
     });
@@ -74,7 +76,7 @@ export function PersonDetail() {
     ? edit.length > 0 && edit.every(p => {
         if (p.role === 'org') return true;
         if (p.perimeterTab === 'entity') return p.entityIds.length > 0;
-        return !!p.groupId;
+        return p.groupIds.length > 0;
       })
     : false;
 
@@ -82,7 +84,7 @@ export function PersonDetail() {
     setEdit(prev => prev ? prev.map((p, idx) => idx === i ? { ...p, ...patch } : p) : prev);
 
   const addPair = () =>
-    setEdit(prev => prev ? [...prev, { role: 'entity' as RoleKey, entityIds: [], groupId: null, perimeterTab: 'entity' as const }] : prev);
+    setEdit(prev => prev ? [...prev, { role: 'payroll' as RoleKey, entityIds: [], exclude: false, groupIds: [], perimeterTab: 'entity' as const }] : prev);
 
   const removePair = (i: number) =>
     setEdit(prev => prev && prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev);
@@ -243,9 +245,9 @@ export function PersonDetail() {
                 const entityChips = p.type === 'entity'
                   ? (p.entityIds ?? []).map(id => ENTITIES.find(e => e.id === id)).filter(Boolean)
                   : [];
-                const group = p.type === 'group'
-                  ? GROUPS.find(g => g.id === p.groupId)
-                  : null;
+                const groupChips = p.type === 'group'
+                  ? GROUPS.filter(g => (p.groupIds ?? []).includes(g.id))
+                  : [];
 
                 return (
                   <div key={i} style={{
@@ -266,6 +268,9 @@ export function PersonDetail() {
                       {p.type === 'org' && (
                         <span style={perimChipStyle}>Org-wide</span>
                       )}
+                      {p.type === 'entity' && p.exclude && (
+                        <span style={{ ...perimChipStyle, color: 'var(--text2)', fontStyle: 'italic' }}>All except</span>
+                      )}
                       {entityChips.map(entity => (
                         <span key={entity!.id} style={perimChipStyle}>
                           <span style={{ fontSize: 15, lineHeight: 1, flexShrink: 0 }}>
@@ -274,8 +279,11 @@ export function PersonDetail() {
                           {entity!.name}
                         </span>
                       ))}
-                      {group && (
-                        <span style={perimChipStyle}>
+                      {p.type === 'group' && p.exclude && (
+                        <span style={{ ...perimChipStyle, color: 'var(--text2)', fontStyle: 'italic' }}>All except</span>
+                      )}
+                      {groupChips.map(group => (
+                        <span key={group.id} style={perimChipStyle}>
                           <span style={{
                             width: 20, height: 20, borderRadius: 4, flexShrink: 0,
                             background: 'var(--border2)',
@@ -290,7 +298,7 @@ export function PersonDetail() {
                           </span>
                           {group.name}
                         </span>
-                      )}
+                      ))}
                     </div>
                   </div>
                 );
@@ -384,7 +392,7 @@ export function PersonDetail() {
                               {(['entity', 'group'] as const).map(tab => (
                                 <button
                                   key={tab}
-                                  onClick={() => updatePair(pairIndex, { perimeterTab: tab, entityIds: [], groupId: null })}
+                                  onClick={() => updatePair(pairIndex, { perimeterTab: tab, entityIds: [], groupIds: [], exclude: false })}
                                   style={{
                                     padding: '5px 14px', borderRadius: 4, border: 'none',
                                     background: pair.perimeterTab === tab ? 'var(--surface)' : 'transparent',
@@ -399,6 +407,26 @@ export function PersonDetail() {
                               ))}
                             </div>
                           )}
+
+                          {/* Include / Exclude toggle */}
+                          <div style={{ display: 'flex', gap: 2, marginBottom: 14, background: 'var(--bg)', borderRadius: 6, padding: 3, width: 'fit-content', border: '0.5px solid var(--border2)' }}>
+                            {([false, true] as const).map(excl => (
+                              <button
+                                key={String(excl)}
+                                onClick={() => updatePair(pairIndex, { exclude: excl, entityIds: [], groupIds: [] })}
+                                style={{
+                                  padding: '5px 14px', borderRadius: 4, border: 'none',
+                                  background: pair.exclude === excl ? 'var(--surface)' : 'transparent',
+                                  fontSize: 12, fontWeight: pair.exclude === excl ? 500 : 400,
+                                  color: pair.exclude === excl ? 'var(--text)' : 'var(--text2)',
+                                  cursor: 'pointer', transition: 'all 0.1s',
+                                  boxShadow: pair.exclude === excl ? '0 1px 3px rgba(0,0,0,0.07)' : 'none',
+                                }}
+                              >
+                                {excl ? 'All except…' : 'Include'}
+                              </button>
+                            ))}
+                          </div>
 
                           {pair.perimeterTab === 'entity' && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -435,23 +463,29 @@ export function PersonDetail() {
                           {pair.perimeterTab === 'group' && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {GROUPS.map(group => {
-                                const isSelected = pair.groupId === group.id;
+                                const isChecked = pair.groupIds.includes(group.id);
+                                const toggle = () => updatePair(pairIndex, {
+                                  groupIds: isChecked
+                                    ? pair.groupIds.filter(g => g !== group.id)
+                                    : [...pair.groupIds, group.id],
+                                });
                                 return (
                                   <label key={group.id} style={{
                                     display: 'flex', alignItems: 'center', gap: 10,
                                     padding: '10px 14px', borderRadius: 7, cursor: 'pointer',
-                                    border: `1.5px solid ${isSelected ? 'var(--text)' : 'var(--border2)'}`,
-                                    background: isSelected ? 'var(--bg)' : 'transparent',
+                                    border: `1.5px solid ${isChecked ? 'var(--text)' : 'var(--border2)'}`,
+                                    background: isChecked ? 'var(--bg)' : 'transparent',
                                     transition: 'all 0.1s',
                                   }}>
-                                    <input type="radio" checked={isSelected} onChange={() => updatePair(pairIndex, { groupId: group.id })} style={{ display: 'none' }} />
+                                    <input type="checkbox" checked={isChecked} onChange={toggle} style={{ display: 'none' }} />
                                     <div style={{
-                                      width: 15, height: 15, borderRadius: '50%', flexShrink: 0,
-                                      border: `1.5px solid ${isSelected ? 'var(--text)' : 'var(--border2)'}`,
+                                      width: 15, height: 15, borderRadius: 3, flexShrink: 0,
+                                      border: `1.5px solid ${isChecked ? 'var(--text)' : 'var(--border2)'}`,
+                                      background: isChecked ? 'var(--text)' : 'transparent',
                                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                                       transition: 'all 0.1s',
                                     }}>
-                                      {isSelected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text)' }} />}
+                                      {isChecked && <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 4l2.5 2.5L7 1.5" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                                     </div>
                                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{group.name}</div>
                                   </label>

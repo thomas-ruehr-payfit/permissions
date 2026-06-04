@@ -19,30 +19,43 @@ const PERSONAL_SETTINGS_ITEMS = [
 function IconBtn({ icon, label, badge, active, onClick }: { icon: React.ReactNode; label: string; badge?: boolean; active?: boolean; onClick?: () => void }) {
   const [hovered, setHovered] = useState(false);
   return (
-    <button
-      title={label}
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        position: 'relative',
-        width: 32, height: 32, borderRadius: 7,
-        border: `0.5px solid ${active ? 'var(--border2)' : 'transparent'}`,
-        background: active ? 'var(--bg)' : hovered ? 'var(--bg)' : 'transparent',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', color: active ? 'var(--text)' : 'var(--text2)',
-        transition: 'all 0.1s',
-      }}
-    >
-      {icon}
-      {badge && (
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={onClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          position: 'relative',
+          width: 32, height: 32, borderRadius: 7,
+          border: `0.5px solid ${active ? 'var(--border2)' : 'transparent'}`,
+          background: active ? 'var(--bg)' : hovered ? 'var(--bg)' : 'transparent',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: active ? 'var(--text)' : 'var(--text2)',
+          transition: 'all 0.1s',
+        }}
+      >
+        {icon}
+        {badge && (
+          <div style={{
+            position: 'absolute', top: 5, right: 5,
+            width: 6, height: 6, borderRadius: '50%',
+            background: 'var(--payroll)', border: '1.5px solid var(--surface)',
+          }} />
+        )}
+      </button>
+      {hovered && (
         <div style={{
-          position: 'absolute', top: 5, right: 5,
-          width: 6, height: 6, borderRadius: '50%',
-          background: 'var(--payroll)', border: '1.5px solid var(--surface)',
-        }} />
+          position: 'absolute', top: 'calc(100% + 6px)', left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(20,20,20,0.88)', color: 'white',
+          fontSize: 11, fontFamily: "'DM Mono', monospace",
+          padding: '3px 8px', borderRadius: 4, whiteSpace: 'nowrap',
+          pointerEvents: 'none', zIndex: 200,
+        }}>
+          {label}
+        </div>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -146,9 +159,9 @@ export function TopBar() {
           active={location.pathname.startsWith('/org-settings')}
           onClick={() => navigate('/org-settings')}
           icon={
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-              <circle cx="7.5" cy="7.5" r="2" stroke="currentColor" strokeWidth="1.3"/>
-              <path d="M7.5 1.5v1M7.5 12.5v1M1.5 7.5h1M12.5 7.5h1M3.4 3.4l.7.7M10.9 10.9l.7.7M3.4 11.6l.7-.7M10.9 4.1l.7-.7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           }
         />

@@ -1,4 +1,4 @@
-export type RoleKey = 'org' | 'entity' | 'payroll' | 'hr' | 'acct' | 'mgr';
+export type RoleKey = 'org' | 'payroll' | 'hr' | 'acct' | 'mgr';
 
 export type PerimeterType = 'org' | 'entity' | 'group';
 
@@ -7,7 +7,8 @@ export interface AccessPair {
   perimeter: {
     type: PerimeterType;
     entityIds?: string[];
-    groupId?: string;
+    exclude?: boolean;
+    groupIds?: string[];
   };
 }
 
@@ -41,7 +42,7 @@ export const MOCK_USERS: AdminUser[] = [
     avatarColor: '#0F6E56',
     status: 'active',
     access: [
-      { role: 'entity', perimeter: { type: 'entity', entityIds: ['fr', 'es'] } },
+      { role: 'payroll', perimeter: { type: 'entity', entityIds: ['fr', 'es'] } },
     ],
   },
   {
@@ -52,7 +53,7 @@ export const MOCK_USERS: AdminUser[] = [
     avatarColor: '#C04A1E',
     status: 'active',
     access: [
-      { role: 'payroll', perimeter: { type: 'entity', entityIds: ['fr'] } },
+      { role: 'hr', perimeter: { type: 'entity', entityIds: ['fr'] } },
     ],
   },
   {
@@ -64,7 +65,6 @@ export const MOCK_USERS: AdminUser[] = [
     status: 'active',
     access: [
       { role: 'hr', perimeter: { type: 'entity', entityIds: ['fr', 'uk'] } },
-      { role: 'payroll', perimeter: { type: 'entity', entityIds: ['uk'] } },
     ],
   },
   {
@@ -75,7 +75,8 @@ export const MOCK_USERS: AdminUser[] = [
     avatarColor: '#1458A8',
     status: 'active',
     access: [
-      { role: 'acct', perimeter: { type: 'entity', entityIds: ['fr', 'es', 'uk'] } },
+      // exclude: true demo — access to all entities except France
+      { role: 'acct', perimeter: { type: 'entity', entityIds: ['fr'], exclude: true } },
     ],
   },
   {
@@ -86,7 +87,7 @@ export const MOCK_USERS: AdminUser[] = [
     avatarColor: '#6C2E9A',
     status: 'active',
     access: [
-      { role: 'hr', perimeter: { type: 'group', groupId: 'eng' } },
+      { role: 'hr', perimeter: { type: 'group', groupIds: ['eng'] } },
     ],
   },
   {
@@ -108,7 +109,7 @@ export const MOCK_USERS: AdminUser[] = [
     avatarColor: '#0F6E56',
     status: 'pending',
     access: [
-      { role: 'entity', perimeter: { type: 'entity', entityIds: ['es'] } },
+      { role: 'payroll', perimeter: { type: 'entity', entityIds: ['es'] } },
     ],
   },
 ];

@@ -1,4 +1,4 @@
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useRoleView } from '../../context/RoleViewContext';
 import { NAV_SECTIONS } from '../../data/role-access';
 import type { NavSection } from '../../data/role-access';
@@ -54,20 +54,6 @@ function renderSection(section: NavSection, activeSectionId: string | undefined,
 }
 
 const ICONS: Record<string, React.ReactNode> = {
-  settings: (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-      <circle cx="7.5" cy="7.5" r="2" stroke="currentColor" strokeWidth="1.3"/>
-      <path d="M7.5 1.5v1M7.5 12.5v1M1.5 7.5h1M12.5 7.5h1M3.4 3.4l.7.7M10.9 10.9l.7.7M3.4 11.6l.7-.7M10.9 4.1l.7-.7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-    </svg>
-  ),
-  integrations: (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-      <rect x="1.5" y="1.5" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
-      <rect x="8.5" y="1.5" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
-      <rect x="1.5" y="8.5" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
-      <path d="M11 8.5v1.5M11 10v1.5m0 0H9.5m1.5 0H12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-    </svg>
-  ),
   employees: (
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
       <circle cx="7.5" cy="5" r="2.5" stroke="currentColor" strokeWidth="1.3"/>
@@ -96,18 +82,11 @@ const ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
-const BOTTOM_ITEMS = [
-  { id: 'integrations', label: 'Integrations', path: '/integrations', icon: 'integrations', visibleTo: ['org', 'entity'] as const },
-  { id: 'org-settings', label: 'Organisation Settings', path: '/org-settings', icon: 'settings', visibleTo: ['org', 'entity'] as const },
-] as const;
-
 export function Sidebar() {
   const { viewAs } = useRoleView();
   const location = useLocation();
-  const navigate = useNavigate();
 
   const visibleSections = NAV_SECTIONS.filter(s => s.visibleTo.includes(viewAs));
-  const visibleBottomItems = BOTTOM_ITEMS.filter(item => item.visibleTo.includes(viewAs as 'org' | 'entity'));
 
   const activeSection = NAV_SECTIONS.find(s =>
     location.pathname.startsWith('/' + s.id)
@@ -149,39 +128,6 @@ export function Sidebar() {
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />
-
-        {/* Bottom pinned items */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {visibleBottomItems.length > 0 && (
-            <div style={{ height: '0.5px', background: 'var(--border)', margin: '4px 0 6px' }} />
-          )}
-
-          {visibleBottomItems.map(item => {
-            const isActive = location.pathname.startsWith(item.path);
-            return (
-              <button
-                key={item.id}
-                onClick={() => navigate(item.path)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '7px 9px', borderRadius: 6,
-                  border: 'none', background: isActive ? 'var(--bg)' : 'transparent',
-                  color: isActive ? 'var(--text)' : 'var(--text2)',
-                  fontWeight: isActive ? 500 : 400,
-                  fontSize: 13, cursor: 'pointer', textAlign: 'left', width: '100%',
-                  transition: 'all 0.12s',
-                }}
-                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg)'; }}
-                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
-              >
-                <span style={{ flexShrink: 0, display: 'flex', opacity: isActive ? 0.8 : 0.5 }}>
-                  {ICONS[item.icon]}
-                </span>
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
       </nav>
     </aside>
   );

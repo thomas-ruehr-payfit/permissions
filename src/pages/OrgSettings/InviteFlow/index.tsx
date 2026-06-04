@@ -2,26 +2,23 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUsers } from '../../../context/UsersContext';
 import { ORG_EMPLOYEES } from '../../../data/mock-users';
-import { ROLE_META } from '../../../data/role-access';
 import { StepWho } from './StepWho';
-import { StepRole } from './StepRole';
-import { StepPerimeter } from './StepPerimeter';
+import { StepAccess } from './StepAccess';
 import { StepReview } from './StepReview';
 import { INITIAL_INVITE } from './types';
 import type { InviteState } from './types';
+import type { AccessPair } from '../../../data/mock-users';
 
 const STEPS = [
   { num: 1 as const, label: 'Who are you inviting?' },
-  { num: 2 as const, label: 'Role' },
-  { num: 3 as const, label: 'Perimeter' },
-  { num: 4 as const, label: 'Review & send' },
+  { num: 2 as const, label: 'Access' },
+  { num: 3 as const, label: 'Review & send' },
 ];
 
 const STEP_TITLES: Record<number, string> = {
   1: 'Who are you inviting?',
-  2: 'Which role?',
-  3: 'What is their perimeter?',
-  4: 'Review & confirm',
+  2: 'What access should they have?',
+  3: 'Review & confirm',
 };
 
 function canProceed(step: number, invite: InviteState): boolean {
@@ -31,33 +28,20 @@ function canProceed(step: number, invite: InviteState): boolean {
       if (invite.whoType === 'existing') return !!invite.selectedEmployeeId;
       return !!invite.newName.trim() && !!invite.newEmail.trim();
     case 2:
-      return !!invite.selectedRole;
+      return invite.pairs.length > 0 && invite.pairs.every(p => {
+        if (!p.role) return false;
+        if (p.role === 'org') return true;
+        if (p.perimeterTab === 'entity') return p.entityIds.length > 0;
+        return p.groupIds.length > 0;
+      });
     case 3:
-      if (invite.perimeterTab === 'entity') return invite.entityIds.length > 0;
-      return !!invite.groupId;
-    case 4:
       return true;
     default:
       return false;
   }
 }
 
-type StepNum = 1 | 2 | 3 | 4;
-
-function getStepState(
-  stepNum: number,
-  current: StepNum,
-  skipPerimeter: boolean,
-): 'active' | 'done' | 'future' | 'skipped' {
-  if (stepNum === 3 && skipPerimeter) return 'skipped';
-  if (stepNum === current) return 'active';
-  // Determine order accounting for skip
-  const order = skipPerimeter ? [1, 2, 4] : [1, 2, 3, 4];
-  const ci = order.indexOf(current);
-  const si = order.indexOf(stepNum);
-  if (si !== -1 && si < ci) return 'done';
-  return 'future';
-}
+type StepNum = 1 | 2 | 3;
 
 export function InviteFlowPage() {
   const navigate = useNavigate();
@@ -66,24 +50,17 @@ export function InviteFlowPage() {
   const [step, setStep] = useState<StepNum>(1);
   const [invite, setInvite] = useState<InviteState>(INITIAL_INVITE);
 
-  const skipPerimeter = invite.selectedRole === 'org';
-
   const goNext = () => {
-    if (step === 2 && skipPerimeter) { setStep(4); return; }
-    if (step === 4) { handleSubmit(); return; }
+    if (step === 3) { handleSubmit(); return; }
     setStep(s => (s + 1) as StepNum);
   };
 
   const goPrev = () => {
     if (step === 1) { navigate('/org-settings/access-permissions'); return; }
-    if (step === 4 && skipPerimeter) { setStep(2); return; }
     setStep(s => (s - 1) as StepNum);
   };
 
   const handleSubmit = () => {
-    const role = invite.selectedRole!;
-    const meta = ROLE_META[role];
-
     let name = invite.newName;
     let email = invite.newEmail;
     let initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -95,39 +72,40 @@ export function InviteFlowPage() {
       initials = emp.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
     }
 
-    let perimeter: any;
-    if (role === 'org') {
-      perimeter = { type: 'org' };
-    } else if (invite.perimeterTab === 'group' && invite.groupId) {
-      perimeter = { type: 'group', groupId: invite.groupId };
-    } else {
-      perimeter = { type: 'entity', entityIds: invite.entityIds };
-    }
+    const access: AccessPair[] = invite.pairs
+      .filter(p => p.role !== null)
+      .map(p => {
+        let perimeter: AccessPair['perimeter'];
+        if (p.role === 'org') {
+          perimeter = { type: 'org' };
+        } else if (p.perimeterTab === 'group') {
+          perimeter = { type: 'group', groupIds: p.groupIds, ...(p.exclude ? { exclude: true } : {}) };
+        } else {
+          perimeter = { type: 'entity', entityIds: p.entityIds, ...(p.exclude ? { exclude: true } : {}) };
+        }
+        return { role: p.role!, perimeter };
+      });
 
     addUser({
       id: `u${Date.now()}`,
       name,
       email,
       avatarInitials: initials || '??',
-      avatarColor: meta.color,
+      avatarColor: '#5B4FD4',
       status: 'pending',
-      access: [{ role, perimeter }],
+      access,
     });
 
     navigate('/org-settings/access-permissions');
   };
 
-  // Progress fraction
-  const order = skipPerimeter ? [1, 2, 4] : [1, 2, 3, 4];
-  const progress = (order.indexOf(step) + 1) / order.length;
-
+  const progress = step / STEPS.length;
   const ok = canProceed(step, invite);
 
   const stepContent = {
     1: <StepWho invite={invite} setInvite={setInvite} />,
-    2: <StepRole invite={invite} setInvite={setInvite} />,
-    3: <StepPerimeter invite={invite} setInvite={setInvite} />,
-    4: <StepReview invite={invite} />,
+    2: <StepAccess invite={invite} setInvite={setInvite} />,
+    3: <StepReview invite={invite} />,
   }[step];
 
   return (
@@ -158,8 +136,6 @@ export function InviteFlowPage() {
           </svg>
           Access & Permissions
         </button>
-
-        {/* Centered title */}
         <div style={{
           position: 'absolute', left: '50%', transform: 'translateX(-50%)',
           fontSize: 13, fontWeight: 500, color: 'var(--text)',
@@ -170,19 +146,12 @@ export function InviteFlowPage() {
 
       {/* Progress bar */}
       <div style={{ height: 2, background: 'var(--border)', flexShrink: 0 }}>
-        <div style={{
-          height: '100%',
-          width: `${progress * 100}%`,
-          background: 'var(--org)',
-          transition: 'width 0.35s ease',
-        }} />
+        <div style={{ height: '100%', width: `${progress * 100}%`, background: 'var(--org)', transition: 'width 0.35s ease' }} />
       </div>
 
       {/* Body */}
-      <div style={{
-        flex: 1, overflow: 'hidden',
-        display: 'flex', padding: '28px 32px', gap: 20,
-      }}>
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', padding: '28px 32px', gap: 20 }}>
+
         {/* Step nav */}
         <div style={{
           width: 230, flexShrink: 0,
@@ -192,11 +161,8 @@ export function InviteFlowPage() {
           alignSelf: 'start',
         }}>
           {STEPS.map(s => {
-            const state = getStepState(s.num, step, skipPerimeter);
-            const isDone = state === 'done';
-            const isActive = state === 'active';
-            const isSkipped = state === 'skipped';
-
+            const isDone = s.num < step;
+            const isActive = s.num === step;
             return (
               <button
                 key={s.num}
@@ -208,12 +174,9 @@ export function InviteFlowPage() {
                   border: isActive ? '0.5px solid var(--border2)' : 'none',
                   background: isActive ? 'var(--bg)' : 'transparent',
                   cursor: isDone ? 'pointer' : 'default',
-                  opacity: isSkipped ? 0.35 : 1,
-                  transition: 'all 0.1s',
-                  textAlign: 'left',
+                  transition: 'all 0.1s', textAlign: 'left',
                 }}
               >
-                {/* Step circle */}
                 <div style={{
                   width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -226,22 +189,12 @@ export function InviteFlowPage() {
                       <path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="var(--text3)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   ) : (
-                    <span style={{
-                      fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 500,
-                      color: isActive ? 'white' : 'var(--text3)',
-                      lineHeight: 1,
-                    }}>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 500, color: isActive ? 'white' : 'var(--text3)', lineHeight: 1 }}>
                       {s.num}
                     </span>
                   )}
                 </div>
-
-                {/* Label */}
-                <span style={{
-                  fontSize: 12.5,
-                  fontWeight: isActive ? 500 : 400,
-                  color: isActive ? 'var(--text)' : isDone ? 'var(--text2)' : 'var(--text3)',
-                }}>
+                <span style={{ fontSize: 12.5, fontWeight: isActive ? 500 : 400, color: isActive ? 'var(--text)' : isDone ? 'var(--text2)' : 'var(--text3)' }}>
                   {s.label}
                 </span>
               </button>
@@ -254,7 +207,6 @@ export function InviteFlowPage() {
           flex: 1, background: 'var(--surface)', border: '0.5px solid var(--border2)',
           borderRadius: 12, display: 'flex', flexDirection: 'column', overflow: 'hidden',
         }}>
-          {/* Scrollable content */}
           <div style={{ flex: 1, overflow: 'auto', padding: '32px 40px' }}>
             <h2 style={{
               fontFamily: "'Fraunces', serif", fontSize: 26, fontWeight: 300,
@@ -302,8 +254,8 @@ export function InviteFlowPage() {
                 transition: 'all 0.12s',
               }}
             >
-              {step === 4 ? 'Send invitation' : 'Next'}
-              {step !== 4 && (
+              {step === 3 ? 'Send invitation' : 'Next'}
+              {step !== 3 && (
                 <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
                   <path d="M5 2l5 4.5L5 11" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>

@@ -32,19 +32,12 @@ export const ROLE_META: Record<RoleKey, { label: string; labelFr: string; color:
     bg: 'var(--org-bg)',
     description: 'Full access to everything, no restrictions. Can add entities and manage all admins.',
   },
-  entity: {
-    label: 'Entity Admin',
-    labelFr: 'Admin Établissement',
-    color: 'var(--entity)',
-    bg: 'var(--entity-bg)',
-    description: 'Full operational access within assigned entities. Cannot add entities or manage admin roles.',
-  },
   payroll: {
     label: 'Payroll Manager',
-    labelFr: 'Gestionnaire Paie',
-    color: 'var(--payroll)',
-    bg: 'var(--payroll-bg)',
-    description: 'Payroll objects only — variables, payslips, declarations. Perimeter by entity.',
+    labelFr: 'Responsable Paie',
+    color: 'var(--entity)',
+    bg: 'var(--entity-bg)',
+    description: 'Full operational access within assigned entities. Cannot add entities or manage org-level roles.',
   },
   hr: {
     label: 'HR Manager',
@@ -74,19 +67,19 @@ export const NAV_SECTIONS: NavSection[] = [
     id: 'employees',
     label: 'Employees',
     icon: 'employees',
-    visibleTo: ['org', 'entity', 'hr', 'mgr'],
+    visibleTo: ['org', 'payroll', 'hr', 'mgr'],
     defaultPath: '/employees/list',
     subItems: [
-      { id: 'employee-list', label: 'Employee List', path: '/employees/list', visibleTo: ['org', 'entity', 'hr'] },
+      { id: 'employee-list', label: 'Employee List', path: '/employees/list', visibleTo: ['org', 'payroll', 'hr'] },
       {
-        id: 'new-hires', label: 'New Hires', path: '/employees/new-hires', visibleTo: ['org', 'entity', 'hr'],
+        id: 'new-hires', label: 'New Hires', path: '/employees/new-hires', visibleTo: ['org', 'payroll', 'hr'],
         subItems: [
           { id: 'ob-questionnaire', label: 'OB Questionnaire', path: '/employees/new-hires/ob-questionnaire' },
           { id: 'ob-checklist',     label: 'OB Checklist',     path: '/employees/new-hires/ob-checklist'     },
         ],
       },
       {
-        id: 'activity', label: 'Activity', path: '/employees/activity', visibleTo: ['org', 'entity', 'hr', 'payroll'],
+        id: 'activity', label: 'Activity', path: '/employees/activity', visibleTo: ['org', 'payroll', 'hr'],
         subItems: [
           { id: 'time-planning',   label: 'Time Planning',  path: '/employees/activity/time-planning'  },
           { id: 'projects',        label: 'Projects',       path: '/employees/activity/projects'       },
@@ -96,42 +89,42 @@ export const NAV_SECTIONS: NavSection[] = [
         ],
       },
       {
-        id: 'leaves', label: 'Leaves', path: '/employees/leaves', visibleTo: ['org', 'entity', 'hr', 'payroll', 'mgr'],
+        id: 'leaves', label: 'Leaves', path: '/employees/leaves', visibleTo: ['org', 'payroll', 'hr', 'mgr'],
         subItems: [
-          { id: 'holidays',       label: 'Holidays',       path: '/employees/leaves/holidays'       },
-          { id: 'sick-leaves',    label: 'Sick Leaves',    path: '/employees/leaves/sick-leaves'    },
-          { id: 'parental',       label: 'Parental Leaves',path: '/employees/leaves/parental'       },
-          { id: 'unpaid',         label: 'Unpaid Leaves',  path: '/employees/leaves/unpaid'         },
+          { id: 'holidays',       label: 'Holidays',        path: '/employees/leaves/holidays'       },
+          { id: 'sick-leaves',    label: 'Sick Leaves',     path: '/employees/leaves/sick-leaves'    },
+          { id: 'parental',       label: 'Parental Leaves', path: '/employees/leaves/parental'       },
+          { id: 'unpaid',         label: 'Unpaid Leaves',   path: '/employees/leaves/unpaid'         },
         ],
       },
       {
-        id: 'compensation', label: 'Compensation', path: '/employees/compensation', visibleTo: ['org', 'entity', 'hr', 'payroll'],
+        id: 'compensation', label: 'Compensation', path: '/employees/compensation', visibleTo: ['org', 'payroll', 'hr'],
         subItems: [
-          { id: 'salary',         label: 'Salary',               path: '/employees/compensation/salary'         },
-          { id: 'expenses',       label: 'Expenses',             path: '/employees/compensation/expenses'       },
-          { id: 'contributions',  label: 'Employee Contributions',path: '/employees/compensation/contributions'  },
+          { id: 'salary',         label: 'Salary',                path: '/employees/compensation/salary'        },
+          { id: 'expenses',       label: 'Expenses',              path: '/employees/compensation/expenses'      },
+          { id: 'contributions',  label: 'Employee Contributions', path: '/employees/compensation/contributions' },
         ],
       },
-      { id: 'bonuses', label: 'Bonuses', path: '/employees/bonuses', visibleTo: ['org', 'entity', 'payroll'] },
+      { id: 'bonuses', label: 'Bonuses', path: '/employees/bonuses', visibleTo: ['org', 'payroll'] },
       {
-        id: 'benefits', label: 'Benefits', path: '/employees/benefits', visibleTo: ['org', 'entity', 'hr'],
+        id: 'benefits', label: 'Benefits', path: '/employees/benefits', visibleTo: ['org', 'payroll', 'hr'],
         subItems: [
-          { id: 'meals',        label: 'Meals',            path: '/employees/benefits/meals'        },
-          { id: 'transport',    label: 'Transport',        path: '/employees/benefits/transport'    },
-          { id: 'medical',      label: 'Medical Insurance',path: '/employees/benefits/medical'      },
-          { id: 'life-ins',     label: 'Life Insurance',   path: '/employees/benefits/life-ins',     flag: '🇫🇷' },
-          { id: 'pension',      label: 'Pension',          path: '/employees/benefits/pension',      flag: '🇬🇧' },
-          { id: 'training',     label: 'Training',         path: '/employees/benefits/training',     flag: '🇬🇧' },
-          { id: 'wealth',       label: 'Wealth',           path: '/employees/benefits/wealth'       },
+          { id: 'meals',     label: 'Meals',             path: '/employees/benefits/meals'     },
+          { id: 'transport', label: 'Transport',         path: '/employees/benefits/transport' },
+          { id: 'medical',   label: 'Medical Insurance', path: '/employees/benefits/medical'   },
+          { id: 'life-ins',  label: 'Life Insurance',    path: '/employees/benefits/life-ins',  flag: '🇫🇷' },
+          { id: 'pension',   label: 'Pension',           path: '/employees/benefits/pension',   flag: '🇬🇧' },
+          { id: 'training',  label: 'Training',          path: '/employees/benefits/training',  flag: '🇬🇧' },
+          { id: 'wealth',    label: 'Wealth',            path: '/employees/benefits/wealth'    },
         ],
       },
       {
-        id: 'performance', label: 'Performance + Goals', path: '/employees/performance', visibleTo: ['org', 'entity', 'hr', 'mgr'],
+        id: 'performance', label: 'Performance + Goals', path: '/employees/performance', visibleTo: ['org', 'payroll', 'hr', 'mgr'],
         subItems: [
-          { id: 'reviews',    label: 'Performance Reviews', path: '/employees/performance/reviews'    },
-          { id: 'surveys',    label: 'Surveys',             path: '/employees/performance/surveys'    },
-          { id: 'goals',      label: 'Goals',               path: '/employees/performance/goals'      },
-          { id: 'checkins',   label: '1:1 Check-ins',       path: '/employees/performance/checkins'   },
+          { id: 'reviews',  label: 'Performance Reviews', path: '/employees/performance/reviews'  },
+          { id: 'surveys',  label: 'Surveys',             path: '/employees/performance/surveys'  },
+          { id: 'goals',    label: 'Goals',               path: '/employees/performance/goals'    },
+          { id: 'checkins', label: '1:1 Check-ins',       path: '/employees/performance/checkins' },
         ],
       },
     ],
@@ -140,12 +133,12 @@ export const NAV_SECTIONS: NavSection[] = [
     id: 'payroll',
     label: 'Run Payroll',
     icon: 'payroll',
-    visibleTo: ['org', 'entity', 'payroll'],
+    visibleTo: ['org', 'payroll'],
     defaultPath: '/payroll/review',
     subItems: [
-      { id: 'review-payroll', label: 'Review and Close', path: '/payroll/review', visibleTo: ['org', 'entity', 'payroll'] },
+      { id: 'review-payroll', label: 'Review and Close', path: '/payroll/review', visibleTo: ['org', 'payroll'] },
       {
-        id: 'pay-employees', label: 'Pay Employees', path: '/payroll/payments', visibleTo: ['org', 'entity', 'payroll'],
+        id: 'pay-employees', label: 'Pay Employees', path: '/payroll/payments', visibleTo: ['org', 'payroll'],
         subItems: [
           { id: 'monthly',    label: "This Month's Payments",  path: '/payroll/payments/monthly'    },
           { id: 'advances',   label: 'Salary Advances',        path: '/payroll/payments/advances'   },
@@ -155,7 +148,7 @@ export const NAV_SECTIONS: NavSection[] = [
         ],
       },
       {
-        id: 'post-payroll', label: 'Post-Payroll', path: '/payroll/post', visibleTo: ['org', 'entity', 'payroll'],
+        id: 'post-payroll', label: 'Post-Payroll', path: '/payroll/post', visibleTo: ['org', 'payroll'],
         subItems: [
           { id: 'post-accounting', label: 'Accounting',        path: '/payroll/post/accounting' },
           { id: 'post-reports',    label: 'Reports',           path: '/payroll/post/reports'    },
@@ -168,16 +161,16 @@ export const NAV_SECTIONS: NavSection[] = [
     id: 'company',
     label: 'Company',
     icon: 'company',
-    visibleTo: ['org', 'entity', 'acct'],
+    visibleTo: ['org', 'payroll', 'acct'],
     defaultPath: '/company/profile',
     subItems: [
       {
-        id: 'company-profile', label: 'Company Profile', path: '/company/profile', visibleTo: ['org', 'entity'],
+        id: 'company-profile', label: 'Company Profile', path: '/company/profile', visibleTo: ['org', 'payroll'],
         subItems: [
-          { id: 'general-info', label: 'General Info', path: '/company/profile/general'    },
-          { id: 'bank-info',    label: 'Bank Info',    path: '/company/profile/bank'       },
-          { id: 'industry',     label: 'Industry',     path: '/company/profile/industry'   },
-          { id: 'headcount',    label: 'Headcount',    path: '/company/profile/headcount'  },
+          { id: 'general-info', label: 'General Info', path: '/company/profile/general'   },
+          { id: 'bank-info',    label: 'Bank Info',    path: '/company/profile/bank'      },
+          { id: 'industry',     label: 'Industry',     path: '/company/profile/industry'  },
+          { id: 'headcount',    label: 'Headcount',    path: '/company/profile/headcount' },
         ],
       },
       {
@@ -187,31 +180,31 @@ export const NAV_SECTIONS: NavSection[] = [
           { id: 'plan',     label: 'Your Plan',     path: '/company/subscription/plan'     },
         ],
       },
-      { id: 'journals',   label: 'Payroll Journals',    path: '/company/journals',    visibleTo: ['org', 'entity', 'acct'] },
+      { id: 'journals', label: 'Payroll Journals', path: '/company/journals', visibleTo: ['org', 'payroll', 'acct'] },
       {
-        id: 'analytics', label: 'Analytics + Exports', path: '/company/analytics', visibleTo: ['org', 'entity', 'acct'],
+        id: 'analytics', label: 'Analytics + Exports', path: '/company/analytics', visibleTo: ['org', 'payroll', 'acct'],
         subItems: [
-          { id: 'custom-reports',  label: 'Custom Reports',  path: '/company/analytics/custom'    },
-          { id: 'company-reports', label: 'Company Reports', path: '/company/analytics/company'   },
-          { id: 'emp-register',    label: 'Employee Register',path: '/company/analytics/register', flag: '🇫🇷' },
+          { id: 'custom-reports',  label: 'Custom Reports',   path: '/company/analytics/custom'    },
+          { id: 'company-reports', label: 'Company Reports',  path: '/company/analytics/company'   },
+          { id: 'emp-register',    label: 'Employee Register', path: '/company/analytics/register', flag: '🇫🇷' },
         ],
       },
       {
-        id: 'policies', label: 'Company Policies', path: '/company/policies', visibleTo: ['org', 'entity'],
+        id: 'policies', label: 'Company Policies', path: '/company/policies', visibleTo: ['org', 'payroll'],
         subItems: [
-          { id: 'pol-activity',  label: 'Activity',           path: '/company/policies/activity'    },
-          { id: 'pol-leaves',    label: 'Leaves',             path: '/company/policies/leaves'      },
-          { id: 'pol-comp',      label: 'Compensation',       path: '/company/policies/compensation'},
-          { id: 'pol-bonuses',   label: 'Bonuses',            path: '/company/policies/bonuses'     },
-          { id: 'pol-benefits',  label: 'Benefits',           path: '/company/policies/benefits'    },
-          { id: 'pol-contracts', label: 'Employment Contracts',path: '/company/policies/contracts'  },
+          { id: 'pol-activity',  label: 'Activity',             path: '/company/policies/activity'     },
+          { id: 'pol-leaves',    label: 'Leaves',               path: '/company/policies/leaves'       },
+          { id: 'pol-comp',      label: 'Compensation',         path: '/company/policies/compensation' },
+          { id: 'pol-bonuses',   label: 'Bonuses',              path: '/company/policies/bonuses'      },
+          { id: 'pol-benefits',  label: 'Benefits',             path: '/company/policies/benefits'     },
+          { id: 'pol-contracts', label: 'Employment Contracts', path: '/company/policies/contracts'    },
         ],
       },
       {
         id: 'roles-permissions', label: 'Roles + Permissions', path: '/company/roles-permissions', visibleTo: ['org'],
         subItems: [
-          { id: 'payroll-approval', label: 'Payroll Approval',          path: '/company/roles-permissions/payroll-approval' },
-          { id: 'admin-notifs',     label: 'Admin Notification Settings',path: '/company/roles-permissions/notifications'   },
+          { id: 'payroll-approval', label: 'Payroll Approval',           path: '/company/roles-permissions/payroll-approval' },
+          { id: 'admin-notifs',     label: 'Admin Notification Settings', path: '/company/roles-permissions/notifications'   },
         ],
       },
     ],
@@ -220,31 +213,30 @@ export const NAV_SECTIONS: NavSection[] = [
     id: 'documents',
     label: 'Documents',
     icon: 'documents',
-    visibleTo: ['org', 'entity', 'hr', 'payroll'],
+    visibleTo: ['org', 'payroll', 'hr'],
     defaultPath: '/documents/list',
     subItems: [
-      { id: 'doc-list',   label: 'Documents List', path: '/documents/list',      visibleTo: ['org', 'entity', 'hr', 'payroll'] },
+      { id: 'doc-list',   label: 'Documents List',     path: '/documents/list',      visibleTo: ['org', 'payroll', 'hr'] },
       {
-        id: 'templates', label: 'Document Templates', path: '/documents/templates', visibleTo: ['org', 'entity', 'hr'],
+        id: 'templates', label: 'Document Templates', path: '/documents/templates', visibleTo: ['org', 'payroll', 'hr'],
         subItems: [
-          { id: 'drafts',    label: 'Drafts',            path: '/documents/templates/drafts'    },
-          { id: 'generated', label: 'Generated Documents',path: '/documents/templates/generated' },
-          { id: 'gallery',   label: 'Template Gallery',  path: '/documents/templates/gallery'   },
-          { id: 'custom',    label: 'Custom Templates',  path: '/documents/templates/custom'    },
+          { id: 'drafts',    label: 'Drafts',             path: '/documents/templates/drafts'    },
+          { id: 'generated', label: 'Generated Documents', path: '/documents/templates/generated' },
+          { id: 'gallery',   label: 'Template Gallery',   path: '/documents/templates/gallery'   },
+          { id: 'custom',    label: 'Custom Templates',   path: '/documents/templates/custom'    },
         ],
       },
-      { id: 'esignature', label: 'E-Signature', path: '/documents/esignature', visibleTo: ['org', 'entity', 'hr'] },
+      { id: 'esignature', label: 'E-Signature', path: '/documents/esignature', visibleTo: ['org', 'payroll', 'hr'] },
     ],
   },
 ];
 
-export const ASSIGNABLE_ROLES: RoleKey[] = ['org', 'entity', 'payroll', 'hr', 'acct'];
+export const ASSIGNABLE_ROLES: RoleKey[] = ['org', 'payroll', 'hr', 'acct'];
 
 export type PerimeterMode = 'fixed-org' | 'entity' | 'entity-or-group';
 
 export const PERIMETER_MODE: Record<RoleKey, PerimeterMode> = {
   org: 'fixed-org',
-  entity: 'entity',
   payroll: 'entity',
   hr: 'entity-or-group',
   acct: 'entity',
