@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MultiSelectDropdown } from '../../../components/ui/MultiSelectDropdown';
 import { ENTITIES, GROUPS } from '../../../data/mock-entities';
 import { TEAM_MEMBERS } from '../../../data/mock-users';
 import type { ManagerPermissions, ManagerReport } from '../../../data/mock-users';
@@ -247,10 +248,10 @@ function ManagerPerimeterEditor({
   onChange: (reports: ManagerReport[]) => void;
 }) {
   const { users } = useUsers();
-  const [search, setSearch]           = useState('');
-  const [filterGroup, setFilterGroup] = useState<string | null>(null);
-  const [filterEntity, setFilterEntity] = useState<string | null>(null);
-  const [filterMgr, setFilterMgr]     = useState<'all' | 'with' | 'without'>('all');
+  const [search, setSearch]               = useState('');
+  const [filterGroups, setFilterGroups]   = useState<string[]>([]);
+  const [filterEntities, setFilterEntities] = useState<string[]>([]);
+  const [filterMgr, setFilterMgr]         = useState<'all' | 'with' | 'without'>('all');
 
   // Build employeeId → current manager name map
   const managerOf: Record<string, string> = {};
@@ -282,8 +283,8 @@ function ManagerPerimeterEditor({
 
   const filtered = TEAM_MEMBERS.filter(m => {
     if (search.trim() && !m.name.toLowerCase().includes(search.toLowerCase()) && !m.title.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterGroup && !m.groupIds.includes(filterGroup)) return false;
-    if (filterEntity && m.entityId !== filterEntity) return false;
+    if (filterGroups.length > 0 && !filterGroups.some(g => m.groupIds.includes(g))) return false;
+    if (filterEntities.length > 0 && !filterEntities.includes(m.entityId)) return false;
     if (filterMgr === 'with' && !managerOf[m.id]) return false;
     if (filterMgr === 'without' && managerOf[m.id]) return false;
     return true;
@@ -305,41 +306,26 @@ function ManagerPerimeterEditor({
       />
 
       {/* Filters */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-        {/* Team filters */}
-        {[null, ...GROUPS.map(g => g.id)].map(id => {
-          const label = id ? GROUPS.find(g => g.id === id)!.name : 'All teams';
-          const active = filterGroup === id;
-          return (
-            <button key={id ?? 'all'} onClick={() => setFilterGroup(id)}
-              style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11.5, border: `1px solid ${active ? 'var(--text)' : 'var(--border2)'}`, background: active ? 'var(--text)' : 'transparent', color: active ? 'white' : 'var(--text2)', cursor: 'pointer', transition: 'all 0.1s', fontFamily: "'DM Mono', monospace" }}>
-              {label}
-            </button>
-          );
-        })}
-
-        <div style={{ width: '0.5px', background: 'var(--border2)', margin: '0 2px' }} />
-
-        {/* Entity filters */}
-        {[null, 'fr', 'es', 'uk'].map(id => {
-          const active = filterEntity === id;
-          return (
-            <button key={id ?? 'all-ent'} onClick={() => setFilterEntity(id)}
-              style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11.5, border: `1px solid ${active ? 'var(--text)' : 'var(--border2)'}`, background: active ? 'var(--text)' : 'transparent', color: active ? 'white' : 'var(--text2)', cursor: 'pointer', transition: 'all 0.1s', fontFamily: "'DM Mono', monospace" }}>
-              {id ? ENTITY_FLAGS[id] : 'All entities'}
-            </button>
-          );
-        })}
-
-        <div style={{ width: '0.5px', background: 'var(--border2)', margin: '0 2px' }} />
-
-        {/* Manager filter */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+        <MultiSelectDropdown
+          options={GROUPS.map(g => ({ id: g.id, label: g.name }))}
+          selected={filterGroups}
+          onChange={setFilterGroups}
+          placeholder="Teams"
+        />
+        <MultiSelectDropdown
+          options={ENTITIES.map(e => ({ id: e.id, label: `${ENTITY_FLAGS[e.id] ?? ''} ${e.country}` }))}
+          selected={filterEntities}
+          onChange={setFilterEntities}
+          placeholder="Entities"
+        />
+        <div style={{ width: '0.5px', height: 20, background: 'var(--border2)' }} />
         {(['all', 'with', 'without'] as const).map(val => {
           const labels = { all: 'All', with: 'Has manager', without: 'No manager' };
           const active = filterMgr === val;
           return (
             <button key={val} onClick={() => setFilterMgr(val)}
-              style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11.5, border: `1px solid ${active ? 'var(--text)' : 'var(--border2)'}`, background: active ? 'var(--text)' : 'transparent', color: active ? 'white' : 'var(--text2)', cursor: 'pointer', transition: 'all 0.1s', fontFamily: "'DM Mono', monospace" }}>
+              style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11.5, border: `1px solid ${active ? 'var(--text)' : 'var(--border2)'}`, background: active ? 'var(--text)' : 'transparent', color: active ? 'white' : 'var(--text2)', cursor: 'pointer', transition: 'all 0.1s', fontFamily: "'DM Mono', monospace", whiteSpace: 'nowrap' }}>
               {labels[val]}
             </button>
           );

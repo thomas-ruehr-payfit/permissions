@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MultiSelectDropdown } from '../../components/ui/MultiSelectDropdown';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useUsers } from '../../context/UsersContext';
 import { ROLE_META, ASSIGNABLE_ROLES, PERIMETER_MODE, BLOCKED_BY_ORG } from '../../data/role-access';
@@ -70,9 +71,9 @@ export function PersonDetail() {
   const user = users.find(u => u.id === userId);
   const [isEditing, setIsEditing] = useState(false);
   const [edit, setEdit] = useState<PairEditState[] | null>(null);
-  const [mgrSearch, setMgrSearch]           = useState('');
-  const [mgrFilterGroup, setMgrFilterGroup] = useState<string | null>(null);
-  const [mgrFilterEntity, setMgrFilterEntity] = useState<string | null>(null);
+  const [mgrSearch, setMgrSearch]               = useState('');
+  const [mgrFilterGroups, setMgrFilterGroups]   = useState<string[]>([]);
+  const [mgrFilterEntities, setMgrFilterEntities] = useState<string[]>([]);
 
   if (!user) { navigate('/org-settings/access-permissions'); return null; }
 
@@ -397,24 +398,26 @@ export function PersonDetail() {
                             onBlur={e => (e.currentTarget.style.borderColor = 'var(--border2)')}
                           />
                           {/* Filters */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
-                            {[null, ...GROUPS.map(g => g.id)].map(id => {
-                              const label = id ? GROUPS.find(g => g.id === id)!.name : 'All teams';
-                              const active = mgrFilterGroup === id;
-                              return <button key={id ?? 'all'} onClick={() => setMgrFilterGroup(id)} style={filterPill(active)}>{label}</button>;
-                            })}
-                            <div style={{ width: '0.5px', background: 'var(--border2)', margin: '0 2px' }} />
-                            {[null, 'fr', 'es', 'uk'].map(id => {
-                              const active = mgrFilterEntity === id;
-                              return <button key={id ?? 'all-e'} onClick={() => setMgrFilterEntity(id)} style={filterPill(active)}>{id ? ENTITY_FLAGS_D[id] : 'All entities'}</button>;
-                            })}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+                            <MultiSelectDropdown
+                              options={GROUPS.map(g => ({ id: g.id, label: g.name }))}
+                              selected={mgrFilterGroups}
+                              onChange={setMgrFilterGroups}
+                              placeholder="Teams"
+                            />
+                            <MultiSelectDropdown
+                              options={ENTITIES.map(e => ({ id: e.id, label: `${ENTITY_FLAGS_D[e.id] ?? ''} ${e.country}` }))}
+                              selected={mgrFilterEntities}
+                              onChange={setMgrFilterEntities}
+                              placeholder="Entities"
+                            />
                           </div>
 
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             {TEAM_MEMBERS.filter(m => {
                               if (mgrSearch.trim() && !m.name.toLowerCase().includes(mgrSearch.toLowerCase()) && !m.title.toLowerCase().includes(mgrSearch.toLowerCase())) return false;
-                              if (mgrFilterGroup && !m.groupIds.includes(mgrFilterGroup)) return false;
-                              if (mgrFilterEntity && m.entityId !== mgrFilterEntity) return false;
+                              if (mgrFilterGroups.length > 0 && !mgrFilterGroups.some(g => m.groupIds.includes(g))) return false;
+                              if (mgrFilterEntities.length > 0 && !mgrFilterEntities.includes(m.entityId)) return false;
                               return true;
                             }).map(member => {
                               const report = pair.reports.find(r => r.employeeId === member.id);
@@ -538,14 +541,6 @@ function EditCheckbox({ checked }: { checked: boolean }) {
   );
 }
 
-const filterPill = (active: boolean): React.CSSProperties => ({
-  padding: '3px 10px', borderRadius: 20, fontSize: 11.5,
-  border: `1px solid ${active ? 'var(--text)' : 'var(--border2)'}`,
-  background: active ? 'var(--text)' : 'transparent',
-  color: active ? 'white' : 'var(--text2)',
-  cursor: 'pointer', transition: 'all 0.1s',
-  fontFamily: "'DM Mono', monospace",
-});
 
 const chipStyle: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 7,
