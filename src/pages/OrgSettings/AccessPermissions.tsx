@@ -145,15 +145,11 @@ export function AccessPermissions() {
                             </div>
                           ) : null;
                         })}
-                        {p.type === 'entity' && p.exclude && (
-                          <span style={{ fontSize: 12, color: 'var(--text2)', fontStyle: 'italic', lineHeight: '20px' }}>All except</span>
-                        )}
                         {p.type === 'group' && (() => {
                           const groups = GROUPS.filter(g => (p.groupIds ?? []).includes(g.id));
                           if (!groups.length) return null;
                           return (
                             <>
-                              {p.exclude && <span style={{ fontSize: 12, color: 'var(--text2)', fontStyle: 'italic', lineHeight: '20px' }}>All except</span>}
                               {groups.map(group => (
                                 <div key={group.id} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: 'var(--text)', lineHeight: '20px' }}>
                                   <svg width="13" height="13" viewBox="0 0 11 11" fill="none" style={{ flexShrink: 0, color: 'var(--text3)' }}>

@@ -3,7 +3,6 @@ import type { RoleKey } from '../../../data/mock-users';
 export interface InvitePair {
   role: RoleKey | null;
   entityIds: string[];
-  exclude: boolean;
   groupIds: string[];
   perimeterTab: 'entity' | 'group';
 }
@@ -19,7 +18,6 @@ export interface InviteState {
 export const EMPTY_PAIR: InvitePair = {
   role: null,
   entityIds: [],
-  exclude: false,
   groupIds: [],
   perimeterTab: 'entity',
 };

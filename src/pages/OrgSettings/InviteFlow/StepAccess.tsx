@@ -123,7 +123,7 @@ function PairEditor({ pair, onChange }: { pair: InvitePair; onChange: (patch: Pa
             return (
               <button
                 key={role}
-                onClick={() => onChange({ role, entityIds: [], groupIds: [], exclude: false, perimeterTab: 'entity' })}
+                onClick={() => onChange({ role, entityIds: [], groupIds: [], perimeterTab: 'entity' })}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 16,
                   padding: '12px 14px', borderRadius: 8, textAlign: 'left', width: '100%',
@@ -167,7 +167,7 @@ function PairEditor({ pair, onChange }: { pair: InvitePair; onChange: (patch: Pa
               {(['entity', 'group'] as const).map(tab => (
                 <button
                   key={tab}
-                  onClick={() => onChange({ perimeterTab: tab, entityIds: [], groupIds: [], exclude: false })}
+                  onClick={() => onChange({ perimeterTab: tab, entityIds: [], groupIds: [] })}
                   style={{
                     padding: '5px 14px', borderRadius: 4, border: 'none',
                     background: pair.perimeterTab === tab ? 'var(--surface)' : 'transparent',
@@ -182,32 +182,6 @@ function PairEditor({ pair, onChange }: { pair: InvitePair; onChange: (patch: Pa
               ))}
             </div>
           )}
-
-          {/* Include / Exclude toggle */}
-          <div style={{ display: 'flex', gap: 2, marginBottom: 14, background: 'var(--bg)', borderRadius: 6, padding: 3, width: 'fit-content', border: '0.5px solid var(--border2)' }}>
-            {([false, true] as const).map(excl => (
-              <button
-                key={String(excl)}
-                onClick={() => onChange({ exclude: excl, entityIds: [], groupIds: [] })}
-                style={{
-                  padding: '5px 14px', borderRadius: 4, border: 'none',
-                  background: pair.exclude === excl ? 'var(--surface)' : 'transparent',
-                  fontSize: 12, fontWeight: pair.exclude === excl ? 500 : 400,
-                  color: pair.exclude === excl ? 'var(--text)' : 'var(--text2)',
-                  cursor: 'pointer', transition: 'all 0.1s',
-                  boxShadow: pair.exclude === excl ? '0 1px 3px rgba(0,0,0,0.07)' : 'none',
-                }}
-              >
-                {excl ? 'All except…' : 'Include'}
-              </button>
-            ))}
-          </div>
-
-          <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12, marginTop: -6 }}>
-            {pair.exclude
-              ? `This role applies to all ${pair.perimeterTab === 'group' ? 'groups' : 'entities'} except the ones selected below.`
-              : `Select the ${pair.perimeterTab === 'group' ? 'groups' : 'entities'} this role applies to.`}
-          </p>
 
           {/* Entity selection */}
           {pair.perimeterTab === 'entity' && (

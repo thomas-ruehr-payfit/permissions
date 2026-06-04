@@ -79,9 +79,9 @@ export function InviteFlowPage() {
         if (p.role === 'org') {
           perimeter = { type: 'org' };
         } else if (p.perimeterTab === 'group') {
-          perimeter = { type: 'group', groupIds: p.groupIds, ...(p.exclude ? { exclude: true } : {}) };
+          perimeter = { type: 'group', groupIds: p.groupIds };
         } else {
-          perimeter = { type: 'entity', entityIds: p.entityIds, ...(p.exclude ? { exclude: true } : {}) };
+          perimeter = { type: 'entity', entityIds: p.entityIds };
         }
         return { role: p.role!, perimeter };
       });

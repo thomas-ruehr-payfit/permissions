@@ -7,7 +7,6 @@ export interface AccessPair {
   perimeter: {
     type: PerimeterType;
     entityIds?: string[];
-    exclude?: boolean;
     groupIds?: string[];
   };
 }
@@ -75,8 +74,7 @@ export const MOCK_USERS: AdminUser[] = [
     avatarColor: '#1458A8',
     status: 'active',
     access: [
-      // exclude: true demo — access to all entities except France
-      { role: 'acct', perimeter: { type: 'entity', entityIds: ['fr'], exclude: true } },
+      { role: 'acct', perimeter: { type: 'entity', entityIds: ['es', 'uk'] } },
     ],
   },
   {

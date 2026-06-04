@@ -12,22 +12,18 @@ interface Props {
 function perimeterLabel(pair: InvitePair): string {
   if (pair.role === 'org') return 'Org-wide (all entities)';
 
-  const prefix = pair.exclude ? 'All except ' : '';
-
   if (pair.perimeterTab === 'group') {
     if (pair.groupIds.length === 0) return '—';
-    const names = pair.groupIds.map(id => GROUPS.find(g => g.id === id)?.name ?? id).join(', ');
-    return prefix + names;
+    return pair.groupIds.map(id => GROUPS.find(g => g.id === id)?.name ?? id).join(', ');
   }
 
   if (pair.entityIds.length === 0) return '—';
-  const names = pair.entityIds
+  return pair.entityIds
     .map(id => {
       const e = ENTITIES.find(en => en.id === id);
       return e ? `${ENTITY_FLAGS[e.id] ?? ''} ${e.name}` : id;
     })
     .join(', ');
-  return prefix + names;
 }
 
 export function StepReview({ invite }: Props) {

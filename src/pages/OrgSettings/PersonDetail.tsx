@@ -9,7 +9,6 @@ import type { AccessPair } from '../../data/mock-users';
 interface PairEditState {
   role: RoleKey;
   entityIds: string[];
-  exclude: boolean;
   groupIds: string[];
   perimeterTab: 'entity' | 'group';
 }
@@ -20,7 +19,6 @@ function initEdit(access: AccessPair[]): PairEditState[] {
     return {
       role: pair.role,
       entityIds: p.type === 'entity' ? (p.entityIds ?? []) : [],
-      exclude: p.exclude ?? false,
       groupIds: p.type === 'group' ? (p.groupIds ?? []) : [],
       perimeterTab: p.type === 'group' ? 'group' : 'entity',
     };
@@ -61,9 +59,9 @@ export function PersonDetail() {
       if (p.role === 'org') {
         perimeter = { type: 'org' };
       } else if (p.perimeterTab === 'group') {
-        perimeter = { type: 'group', groupIds: p.groupIds, ...(p.exclude ? { exclude: true } : {}) };
+        perimeter = { type: 'group', groupIds: p.groupIds };
       } else {
-        perimeter = { type: 'entity', entityIds: p.entityIds, ...(p.exclude ? { exclude: true } : {}) };
+        perimeter = { type: 'entity', entityIds: p.entityIds };
       }
       return { role: p.role, perimeter };
     });
@@ -84,7 +82,7 @@ export function PersonDetail() {
     setEdit(prev => prev ? prev.map((p, idx) => idx === i ? { ...p, ...patch } : p) : prev);
 
   const addPair = () =>
-    setEdit(prev => prev ? [...prev, { role: 'payroll' as RoleKey, entityIds: [], exclude: false, groupIds: [], perimeterTab: 'entity' as const }] : prev);
+    setEdit(prev => prev ? [...prev, { role: 'payroll' as RoleKey, entityIds: [], groupIds: [], perimeterTab: 'entity' as const }] : prev);
 
   const removePair = (i: number) =>
     setEdit(prev => prev && prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev);
@@ -268,9 +266,6 @@ export function PersonDetail() {
                       {p.type === 'org' && (
                         <span style={perimChipStyle}>Org-wide</span>
                       )}
-                      {p.type === 'entity' && p.exclude && (
-                        <span style={{ ...perimChipStyle, color: 'var(--text2)', fontStyle: 'italic' }}>All except</span>
-                      )}
                       {entityChips.map(entity => (
                         <span key={entity!.id} style={perimChipStyle}>
                           <span style={{ fontSize: 15, lineHeight: 1, flexShrink: 0 }}>
@@ -279,9 +274,6 @@ export function PersonDetail() {
                           {entity!.name}
                         </span>
                       ))}
-                      {p.type === 'group' && p.exclude && (
-                        <span style={{ ...perimChipStyle, color: 'var(--text2)', fontStyle: 'italic' }}>All except</span>
-                      )}
                       {groupChips.map(group => (
                         <span key={group.id} style={perimChipStyle}>
                           <span style={{
@@ -408,25 +400,6 @@ export function PersonDetail() {
                             </div>
                           )}
 
-                          {/* Include / Exclude toggle */}
-                          <div style={{ display: 'flex', gap: 2, marginBottom: 14, background: 'var(--bg)', borderRadius: 6, padding: 3, width: 'fit-content', border: '0.5px solid var(--border2)' }}>
-                            {([false, true] as const).map(excl => (
-                              <button
-                                key={String(excl)}
-                                onClick={() => updatePair(pairIndex, { exclude: excl, entityIds: [], groupIds: [] })}
-                                style={{
-                                  padding: '5px 14px', borderRadius: 4, border: 'none',
-                                  background: pair.exclude === excl ? 'var(--surface)' : 'transparent',
-                                  fontSize: 12, fontWeight: pair.exclude === excl ? 500 : 400,
-                                  color: pair.exclude === excl ? 'var(--text)' : 'var(--text2)',
-                                  cursor: 'pointer', transition: 'all 0.1s',
-                                  boxShadow: pair.exclude === excl ? '0 1px 3px rgba(0,0,0,0.07)' : 'none',
-                                }}
-                              >
-                                {excl ? 'All except…' : 'Include'}
-                              </button>
-                            ))}
-                          </div>
 
                           {pair.perimeterTab === 'entity' && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
