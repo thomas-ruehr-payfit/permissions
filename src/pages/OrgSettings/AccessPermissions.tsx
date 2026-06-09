@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useUsers } from '../../context/UsersContext';
 import { useOrgMode, getOrgCopy } from '../../context/OrgModeContext';
 import { useDirection } from '../../context/DirectionContext';
 import { useCustomRoles } from '../../context/CustomRolesContext';
 import { getRoleLabel, ROLE_META, ASSIGNABLE_ROLES } from '../../data/role-access';
-import { PERMISSION_MODULES, ROLE_MODULE_DEFAULTS, seedModules } from '../../data/permissions';
+import { ROLE_MODULE_DEFAULTS, seedModules } from '../../data/permissions';
 import type { CustomRole } from '../../data/permissions';
 import { PermissionEditor } from '../../components/permissions/PermissionEditor';
 import { ENTITIES, GROUPS } from '../../data/mock-entities';

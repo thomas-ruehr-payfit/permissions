@@ -94,7 +94,7 @@ export function StepPerimeter({ role, value, onChange }: Props) {
     );
   }
 
-  if (mode === 'entity-or-group') {
+  if (mode === 'entity-and-group') {
     return (
       <div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>

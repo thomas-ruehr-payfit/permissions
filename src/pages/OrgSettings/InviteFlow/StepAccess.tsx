@@ -259,7 +259,7 @@ export function CollapsedRoleCard({
 
 // ── Pair editor ───────────────────────────────────────────────────────────────
 
-function RoleInfoExpand({ role, moduleDefaults }: { role: RoleKey; moduleDefaults: typeof ROLE_MODULE_DEFAULTS[RoleKey] }) {
+function RoleInfoExpand({ moduleDefaults }: { role: RoleKey; moduleDefaults: typeof ROLE_MODULE_DEFAULTS[RoleKey] }) {
   const LEVEL_COLORS: Record<string, string> = { none: 'var(--text3)', view: '#1458A8', manage: '#0F6E56', custom: 'var(--org)' };
   const nonNone = moduleDefaults.filter(m => m.level !== 'none').slice(0, 4);
   return (

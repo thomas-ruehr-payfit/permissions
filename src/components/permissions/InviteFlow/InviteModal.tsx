@@ -31,7 +31,7 @@ export function InviteModal({ onClose, onAdd }: Props) {
       if (isFixedOrg) return true;
       const mode = role ? PERIMETER_MODE[role] : null;
       if (mode === 'entity') return perimeter.entityIds.length > 0;
-      if (mode === 'entity-or-group') {
+      if (mode === 'entity-and-group') {
         if (perimeter.hrMode === 'entity') return perimeter.entityIds.length > 0;
         return !!perimeter.groupId;
       }
@@ -63,7 +63,7 @@ export function InviteModal({ onClose, onAdd }: Props) {
       if (perimeter.hrMode === 'entity') {
         perimeterValue = { type: 'entity', entityIds: perimeter.entityIds };
       } else {
-        perimeterValue = { type: 'group', groupId: perimeter.groupId ?? undefined };
+        perimeterValue = { type: 'entity-group', entityIds: [], groupIds: perimeter.groupId ? [perimeter.groupId] : [] };
       }
     }
 
@@ -84,11 +84,11 @@ export function InviteModal({ onClose, onAdd }: Props) {
     if (!role) return '—';
     const mode = PERIMETER_MODE[role];
     if (mode === 'fixed-org') return 'Organisation-wide';
-    if (mode === 'entity' || (mode === 'entity-or-group' && perimeter.hrMode === 'entity')) {
+    if (mode === 'entity' || (mode === 'entity-and-group' && perimeter.hrMode === 'entity')) {
       if (!perimeter.entityIds.length) return '—';
       return perimeter.entityIds.map(id => ENTITIES.find(e => e.id === id)?.name ?? id).join(', ');
     }
-    if (mode === 'entity-or-group' && perimeter.hrMode === 'group') {
+    if (mode === 'entity-and-group' && perimeter.hrMode === 'group') {
       return GROUPS.find(g => g.id === perimeter.groupId)?.name ?? '—';
     }
     return '—';

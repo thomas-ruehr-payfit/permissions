@@ -6,7 +6,7 @@ import { useUsers } from '../../context/UsersContext';
 import { useOrgMode, getOrgCopy } from '../../context/OrgModeContext';
 import { useDirection } from '../../context/DirectionContext';
 import { ROLE_META, ASSIGNABLE_ROLES, BLOCKED_BY_ORG, effectivePerimeterMode, getRoleLabel } from '../../data/role-access';
-import { ROLE_MODULE_DEFAULTS, seedModules } from '../../data/permissions';
+import { seedModules } from '../../data/permissions';
 import { PermissionEditor } from '../../components/permissions/PermissionEditor';
 import { ENTITIES, GROUPS } from '../../data/mock-entities';
 import { TEAM_MEMBERS } from '../../data/mock-users';

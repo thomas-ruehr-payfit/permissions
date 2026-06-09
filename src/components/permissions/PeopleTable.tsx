@@ -23,8 +23,9 @@ function perimeterLabel(user: AdminUser): string {
       const names = (p.entityIds ?? []).map(id => ENTITIES.find(e => e.id === id)?.code ?? id);
       return names.join(', ');
     }
-    if (p.type === 'group') {
-      return GROUPS.find(g => g.id === p.groupId)?.name ?? p.groupId ?? '—';
+    if (p.type === 'entity-group') {
+      const groupName = p.groupIds?.[0] ? GROUPS.find(g => g.id === p.groupIds[0])?.name ?? p.groupIds[0] : null;
+      return groupName ?? '—';
     }
     return '—';
   }).join(' · ');
