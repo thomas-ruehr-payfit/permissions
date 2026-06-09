@@ -1,13 +1,17 @@
 import { TEAM_MEMBERS } from '../../../data/mock-users';
-import { ROLE_META } from '../../../data/role-access';
+import { ROLE_META, getRoleLabel } from '../../../data/role-access';
 import { ENTITIES, GROUPS } from '../../../data/mock-entities';
+import { useOrgMode } from '../../../context/OrgModeContext';
+import { useDirection } from '../../../context/DirectionContext';
+import { PERMISSION_MODULES } from '../../../data/permissions';
 import type { InviteState, InvitePair } from './types';
 
 const ENTITY_FLAGS: Record<string, string> = { fr: '🇫🇷', es: '🇪🇸', uk: '🇬🇧' };
 
-function perimeterLabel(pair: InvitePair): string {
+function perimeterLabel(pair: InvitePair, orgEnabled: boolean): string {
   if (!pair.role) return '—';
-  if (pair.role === 'org') return 'Org-wide';
+  if (pair.role === 'org') return orgEnabled ? 'Org-wide' : 'Company-wide';
+  if (pair.role === 'acct' && !orgEnabled) return 'Company-wide';
   if (pair.role === 'mgr') {
     if (pair.reports.length === 0) return '—';
     return pair.reports.map(r => TEAM_MEMBERS.find(m => m.id === r.employeeId)?.name ?? r.employeeId).join(' · ');
@@ -20,9 +24,13 @@ function perimeterLabel(pair: InvitePair): string {
   return [...entityNames, ...groupNames].join(' · ') || '—';
 }
 
+const LEVEL_COLORS: Record<string, string> = { none: 'var(--text3)', view: '#1458A8', manage: '#0F6E56', custom: 'var(--org)' };
+
 interface Props { invite: InviteState }
 
 export function StepReview({ invite }: Props) {
+  const { orgEnabled } = useOrgMode();
+  const { direction } = useDirection();
   let name = invite.newName;
   let email = invite.newEmail;
   let initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -72,17 +80,40 @@ export function StepReview({ invite }: Props) {
                 <div style={rowLabel}>Role</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
                   <div style={{ width: 7, height: 7, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: 13, fontWeight: 500, color: m.color }}>{m.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: m.color }}>{getRoleLabel(pair.role, orgEnabled)}</span>
                 </div>
               </div>
               <div>
                 <div style={rowLabel}>Perimeter</div>
-                <div style={{ fontSize: 12.5, color: 'var(--text)', marginTop: 4 }}>{perimeterLabel(pair)}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--text)', marginTop: 4 }}>{perimeterLabel(pair, orgEnabled)}</div>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* D2: custom module summary */}
+      {direction === 'individual' && invite.customModules && invite.customModules.length > 0 && (
+        <div style={{ marginTop: 20, border: '0.5px solid var(--border2)', borderRadius: 10, overflow: 'hidden', maxWidth: 540 }}>
+          <div style={{ padding: '10px 16px 8px', background: 'var(--bg)', borderBottom: '0.5px solid var(--border)' }}>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Permission summary</span>
+          </div>
+          <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {invite.customModules.map(ma => {
+              const mod = PERMISSION_MODULES.find(m => m.id === ma.moduleId);
+              if (!mod || ma.level === 'none') return null;
+              return (
+                <div key={ma.moduleId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 12.5, color: 'var(--text)' }}>{mod.label}</span>
+                  <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: LEVEL_COLORS[ma.level], textTransform: 'capitalize' }}>
+                    {ma.level}{ma.level === 'custom' ? ` · ${ma.enabledSubIds.length}` : ''}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 20 }}>
         An invitation email will be sent. The person will appear as <strong>Pending</strong> until they accept.

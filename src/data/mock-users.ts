@@ -1,3 +1,5 @@
+import type { ModuleAccess } from './permissions';
+
 export type RoleKey = 'org' | 'payroll' | 'hr' | 'acct' | 'mgr';
 
 // ── Perimeter types ───────────────────────────────────────────────────────────
@@ -24,6 +26,8 @@ export type AccessPerimeter =
 export interface AccessPair {
   role: RoleKey;
   perimeter: AccessPerimeter;
+  /** D1: ID of a custom role if one was assigned */
+  customRoleId?: string;
 }
 
 // ── User ──────────────────────────────────────────────────────────────────────
@@ -36,6 +40,8 @@ export interface AdminUser {
   avatarColor: string;
   status: 'active' | 'pending';
   access: AccessPair[];
+  /** D2: per-person permission overrides (set during invite / edit) */
+  customModules?: ModuleAccess[];
 }
 
 // ── Mock data ─────────────────────────────────────────────────────────────────

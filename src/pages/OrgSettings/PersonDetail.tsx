@@ -3,15 +3,20 @@ import { MultiSelectDropdown } from '../../components/ui/MultiSelectDropdown';
 import { CollapsedRoleCard } from './InviteFlow/StepAccess';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useUsers } from '../../context/UsersContext';
-import { ROLE_META, ASSIGNABLE_ROLES, PERIMETER_MODE, BLOCKED_BY_ORG } from '../../data/role-access';
+import { useOrgMode, getOrgCopy } from '../../context/OrgModeContext';
+import { useDirection } from '../../context/DirectionContext';
+import { ROLE_META, ASSIGNABLE_ROLES, BLOCKED_BY_ORG, effectivePerimeterMode, getRoleLabel } from '../../data/role-access';
+import { ROLE_MODULE_DEFAULTS, seedModules } from '../../data/permissions';
+import { PermissionEditor } from '../../components/permissions/PermissionEditor';
 import { ENTITIES, GROUPS } from '../../data/mock-entities';
 import { TEAM_MEMBERS } from '../../data/mock-users';
 import type { RoleKey, AccessPair, ManagerPermissions, ManagerReport } from '../../data/mock-users';
 
 const ENTITY_FLAGS_D: Record<string, string> = { fr: '🇫🇷', es: '🇪🇸', uk: '🇬🇧' };
 
-function editPairSummary(pair: PairEditState): string {
-  if (pair.role === 'org') return 'Org-wide';
+function editPairSummary(pair: PairEditState, orgEnabled: boolean): string {
+  if (pair.role === 'org') return orgEnabled ? 'Org-wide' : 'Company-wide';
+  if (pair.role === 'acct' && !orgEnabled) return 'Company-wide';
   if (pair.role === 'mgr') {
     if (pair.reports.length === 0) return 'No reports configured';
     const names = pair.reports.slice(0, 3).map(r => TEAM_MEMBERS.find(m => m.id === r.employeeId)?.name ?? r.employeeId);
@@ -84,9 +89,13 @@ export function PersonDetail() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const { users, updateUser, removeUser } = useUsers();
+  const { orgEnabled } = useOrgMode();
+  const { direction } = useDirection();
+  const copy = getOrgCopy(orgEnabled);
 
   const user = users.find(u => u.id === userId);
   const [isEditing, setIsEditing] = useState(false);
+  const [showPermissions, setShowPermissions] = useState(false);
   const [edit, setEdit] = useState<PairEditState[] | null>(null);
   const [activePairIndex, setActivePairIndex] = useState<number | null>(null);
   const [mgrSearch, setMgrSearch]               = useState('');
@@ -104,10 +113,11 @@ export function PersonDetail() {
     if (!edit) return;
     const access: AccessPair[] = edit.map(p => {
       let perimeter: AccessPair['perimeter'];
-      if (p.role === 'org')         perimeter = { type: 'org' };
-      else if (p.role === 'mgr')    perimeter = { type: 'manager', reports: p.reports };
-      else if (p.role === 'hr')     perimeter = { type: 'entity-group', entityIds: p.entityIds, groupIds: p.groupIds };
-      else                          perimeter = { type: 'entity', entityIds: p.entityIds };
+      if (p.role === 'org')                          perimeter = { type: 'org' };
+      else if (p.role === 'mgr')                     perimeter = { type: 'manager', reports: p.reports };
+      else if (p.role === 'hr' || p.role === 'payroll') perimeter = { type: 'entity-group', entityIds: p.entityIds, groupIds: p.groupIds };
+      else if (!orgEnabled && p.role === 'acct')     perimeter = { type: 'org' };
+      else                                           perimeter = { type: 'entity', entityIds: p.entityIds };
       return { role: p.role, perimeter };
     });
     updateUser(user.id, { access });
@@ -119,6 +129,7 @@ export function PersonDetail() {
         if (p.role === 'org') return true;
         if (p.role === 'mgr') return p.reports.length > 0;
         if (p.role === 'hr')  return p.entityIds.length > 0 || p.groupIds.length > 0;
+        if (!orgEnabled && p.role === 'acct') return true;
         return p.entityIds.length > 0;
       })
     : false;
@@ -164,9 +175,12 @@ export function PersonDetail() {
     }) : prev);
 
   // Conflict logic
+  const visibleRoles = orgEnabled
+    ? ASSIGNABLE_ROLES
+    : ASSIGNABLE_ROLES.filter(r => ['org', 'acct', 'mgr'].includes(r));
   const assignedRoles = edit ? edit.map(p => p.role) : [];
   const hasOrg = assignedRoles.includes('org');
-  const canAddMore = edit ? ASSIGNABLE_ROLES.some(r => {
+  const canAddMore = edit ? visibleRoles.some(r => {
     if (assignedRoles.includes(r)) return false;
     if (hasOrg && BLOCKED_BY_ORG.includes(r)) return false;
     return true;
@@ -228,13 +242,12 @@ export function PersonDetail() {
           {!isEditing && (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {user.access.map((pair, i) => {
-                const m = ROLE_META[pair.role];
                 const p = pair.perimeter;
                 return (
                   <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 20, padding: i === 0 ? '0 0 16px' : '16px 0', borderTop: i > 0 ? '0.5px solid var(--border)' : 'none' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', minWidth: 130, flexShrink: 0, paddingTop: 3 }}>{m.label}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', minWidth: 130, flexShrink: 0, paddingTop: 3 }}>{getRoleLabel(pair.role, orgEnabled)}</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {p.type === 'org' && <span style={chipStyle}>Org-wide</span>}
+                      {p.type === 'org' && <span style={chipStyle}>{copy.orgWide}</span>}
 
                       {p.type === 'entity' && p.entityIds.map(id => {
                         const e = ENTITIES.find(en => en.id === id);
@@ -300,7 +313,7 @@ export function PersonDetail() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {edit.map((pair, pairIndex) => {
                 const isActive = pairIndex === activePairIndex;
-                const mode = PERIMETER_MODE[pair.role];
+                const mode = effectivePerimeterMode(pair.role, orgEnabled);
                 const takenByOthers = edit.filter((_, i) => i !== pairIndex).map(p => p.role);
                 const isRoleBlocked = (role: RoleKey) =>
                   takenByOthers.includes(role) || (takenByOthers.includes('org') && BLOCKED_BY_ORG.includes(role));
@@ -309,9 +322,9 @@ export function PersonDetail() {
                   return (
                     <CollapsedRoleCard
                       key={pairIndex}
-                      label={ROLE_META[pair.role].label}
+                      label={getRoleLabel(pair.role, orgEnabled)}
                       color={ROLE_META[pair.role].color}
-                      summary={editPairSummary(pair)}
+                      summary={editPairSummary(pair, orgEnabled)}
                       onExpand={() => setActivePairIndex(pairIndex)}
                       onRemove={edit.length > 1 ? () => removePair(pairIndex) : undefined}
                     />
@@ -335,7 +348,7 @@ export function PersonDetail() {
                       <div>
                         <div style={{ ...fieldLabel, marginBottom: 10 }}>Role</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {ASSIGNABLE_ROLES.map(role => {
+                          {visibleRoles.map(role => {
                             const m = ROLE_META[role];
                             const isSelected = pair.role === role;
                             const isTaken = isRoleBlocked(role);
@@ -346,7 +359,7 @@ export function PersonDetail() {
                               >
                                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
                                 <div style={{ minWidth: 160 }}>
-                                  <div style={{ fontSize: 13, fontWeight: 500, color: isSelected ? m.color : 'var(--text)' }}>{m.label}</div>
+                                  <div style={{ fontSize: 13, fontWeight: 500, color: isSelected ? m.color : 'var(--text)' }}>{getRoleLabel(role, orgEnabled)}</div>
                                   <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>{m.labelFr}</div>
                                 </div>
                                 <div style={{ fontSize: 12, color: 'var(--text2)', flex: 1 }}>{m.description}</div>
@@ -361,7 +374,11 @@ export function PersonDetail() {
                       {mode === 'fixed-org' && (
                         <div style={{ padding: '12px 16px', borderRadius: 7, background: 'var(--bg)', border: '0.5px solid var(--border2)' }}>
                           <div style={{ ...fieldLabel, marginBottom: 4 }}>Perimeter</div>
-                          <div style={{ fontSize: 13, color: 'var(--text2)' }}>Org-wide — Organisation Admins have access to all entities.</div>
+                          <div style={{ fontSize: 13, color: 'var(--text2)' }}>
+                            {pair.role === 'org'
+                              ? `${copy.orgWide} — ${copy.orgWideDesc}`
+                              : 'Company-wide — fixed perimeter.'}
+                          </div>
                         </div>
                       )}
 
@@ -540,7 +557,7 @@ export function PersonDetail() {
                 );
               })}
 
-              {canAddMore && (
+              {canAddMore && orgEnabled && (
                 <button
                   onClick={addPair}
                   style={{
@@ -563,6 +580,41 @@ export function PersonDetail() {
           )}
         </div>
       </div>
+
+      {/* Permissions audit section */}
+      {(() => {
+        const auditModules = direction === 'individual' && user.customModules
+          ? user.customModules
+          : user.access.length > 0
+            ? seedModules(user.access[0].role)
+            : null;
+        if (!auditModules) return null;
+        return (
+          <div style={{ marginTop: 12, background: 'var(--surface)', border: '0.5px solid var(--border2)', borderRadius: 10, overflow: 'hidden' }}>
+            <button
+              onClick={() => setShowPermissions(p => !p)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 20px', background: 'none', border: 'none', cursor: 'pointer', borderBottom: showPermissions ? '0.5px solid var(--border)' : 'none' }}
+            >
+              <span style={{ fontSize: 12, fontFamily: "'DM Mono', monospace", color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {direction === 'individual' ? 'Individual permissions' : 'Role permissions'}
+              </span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ color: 'var(--text3)', transform: showPermissions ? 'rotate(180deg)' : 'none', transition: 'transform 0.12s' }}>
+                <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            {showPermissions && (
+              <div style={{ padding: '16px 20px' }}>
+                {direction === 'rbac' && user.access.length > 1 && (
+                  <p style={{ fontSize: 11.5, color: 'var(--text3)', marginBottom: 12, fontFamily: "'DM Mono', monospace" }}>
+                    Showing permissions for {ROLE_META[user.access[0].role]?.label}
+                  </p>
+                )}
+                <PermissionEditor modules={auditModules} readOnly />
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

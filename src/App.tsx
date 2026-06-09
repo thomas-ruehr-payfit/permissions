@@ -1,5 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { RoleViewProvider } from './context/RoleViewContext';
+import { OrgModeProvider } from './context/OrgModeContext';
+import { DirectionProvider } from './context/DirectionContext';
+import { CustomRolesProvider } from './context/CustomRolesContext';
 import { UsersProvider } from './context/UsersContext';
 import { RootShell } from './components/layout/RootShell';
 import { AppShell } from './components/layout/AppShell';
@@ -55,6 +58,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <RoleViewProvider>
+        <OrgModeProvider>
+        <DirectionProvider>
+        <CustomRolesProvider>
         <UsersProvider>
         <Routes>
           {/* Fully standalone — own top bar, no RootShell */}
@@ -195,6 +201,9 @@ export default function App() {
           </Route>{/* /RootShell */}
         </Routes>
         </UsersProvider>
+        </CustomRolesProvider>
+        </DirectionProvider>
+        </OrgModeProvider>
       </RoleViewProvider>
     </BrowserRouter>
   );

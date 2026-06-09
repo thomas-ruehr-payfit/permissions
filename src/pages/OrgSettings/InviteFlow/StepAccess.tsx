@@ -1,10 +1,14 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MultiSelectDropdown } from '../../../components/ui/MultiSelectDropdown';
 import { ENTITIES, GROUPS } from '../../../data/mock-entities';
 import { TEAM_MEMBERS } from '../../../data/mock-users';
 import type { ManagerPermissions, ManagerReport } from '../../../data/mock-users';
-import { ASSIGNABLE_ROLES, ROLE_META, PERIMETER_MODE, BLOCKED_BY_ORG } from '../../../data/role-access';
+import { ASSIGNABLE_ROLES, ROLE_META, BLOCKED_BY_ORG, effectivePerimeterMode, getRoleLabel } from '../../../data/role-access';
 import type { RoleKey } from '../../../data/mock-users';
+import { useOrgMode, getOrgCopy } from '../../../context/OrgModeContext';
+import { useCustomRoles } from '../../../context/CustomRolesContext';
+import { ROLE_MODULE_DEFAULTS, PERMISSION_MODULES } from '../../../data/permissions';
 import type { InviteState, InvitePair } from './types';
 import { EMPTY_PAIR } from './types';
 import { useUsers } from '../../../context/UsersContext';
@@ -42,15 +46,16 @@ function isBlocked(role: RoleKey, takenByOthers: string[]): boolean {
   return false;
 }
 
-function availableRoles(assigned: string[]): RoleKey[] {
-  return ASSIGNABLE_ROLES.filter(r => !isBlocked(r, assigned));
+function availableRoles(assigned: string[], base: RoleKey[]): RoleKey[] {
+  return base.filter(r => !isBlocked(r, assigned));
 }
 
 // ── Pair summary (for collapsed state) ───────────────────────────────────────
 
-function invitePairSummary(pair: InvitePair): string {
+function invitePairSummary(pair: InvitePair, orgEnabled: boolean): string {
   if (!pair.role) return 'Configure role…';
-  if (pair.role === 'org') return 'Org-wide';
+  if (pair.role === 'org') return orgEnabled ? 'Org-wide' : 'Company-wide';
+  if (pair.role === 'acct' && !orgEnabled) return 'Company-wide';
   if (pair.role === 'mgr') {
     if (pair.reports.length === 0) return 'No reports configured';
     const names = pair.reports.slice(0, 3).map(r => TEAM_MEMBERS.find(m => m.id === r.employeeId)?.name ?? r.employeeId);
@@ -87,9 +92,17 @@ interface Props {
 
 export function StepAccess({ invite, setInvite }: Props) {
   const [activePairIndex, setActivePairIndex] = useState(0);
+  const { orgEnabled } = useOrgMode();
+  const { customRoles } = useCustomRoles();
+  const navigate = useNavigate();
+  const copy = getOrgCopy(orgEnabled);
+
+  const visibleRoles: RoleKey[] = orgEnabled
+    ? ASSIGNABLE_ROLES
+    : ASSIGNABLE_ROLES.filter(r => ['org', 'acct', 'mgr'].includes(r));
 
   const assigned = invite.pairs.map(p => p.role).filter(Boolean) as string[];
-  const canAddMore = availableRoles(assigned).length > 0;
+  const canAddMore = availableRoles(assigned, visibleRoles).length > 0;
 
   const addPair = () => {
     const newIndex = invite.pairs.length;
@@ -105,7 +118,9 @@ export function StepAccess({ invite, setInvite }: Props) {
   return (
     <div>
       <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 24, marginTop: 4 }}>
-        Assign one or more role + perimeter combinations. Roles are complementary — each can appear once.
+        {orgEnabled
+          ? 'Assign one or more role + perimeter combinations. Roles are complementary — each can appear once.'
+          : 'Assign a role for this person.'}
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -119,9 +134,9 @@ export function StepAccess({ invite, setInvite }: Props) {
             return (
               <CollapsedRoleCard
                 key={pairIndex}
-                label={ROLE_META[pair.role].label}
+                label={getRoleLabel(pair.role, orgEnabled)}
                 color={ROLE_META[pair.role].color}
-                summary={invitePairSummary(pair)}
+                summary={invitePairSummary(pair, orgEnabled)}
                 onExpand={() => setActivePairIndex(pairIndex)}
                 onRemove={invite.pairs.length > 1 ? () => removePair(pairIndex) : undefined}
               />
@@ -150,13 +165,16 @@ export function StepAccess({ invite, setInvite }: Props) {
                 pair={pair}
                 takenByOthers={takenByOthers}
                 onChange={patch => updatePair(setInvite, pairIndex, patch)}
+                visibleRoles={visibleRoles}
+                orgEnabled={orgEnabled}
+                copy={copy}
               />
             </div>
           );
         })}
       </div>
 
-      {canAddMore && (
+      {canAddMore && orgEnabled && (
         <button
           onClick={addPair}
           style={{
@@ -174,6 +192,19 @@ export function StepAccess({ invite, setInvite }: Props) {
           </svg>
           Add another role
         </button>
+      )}
+
+      {/* Escape hatch — D1 */}
+      {customRoles !== undefined && (
+        <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: 14, textAlign: 'center' }}>
+          Need a different role?{' '}
+          <button
+            onClick={() => navigate('/org-settings/access-permissions?tab=roles&create=true')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--org)', textDecoration: 'underline', padding: 0 }}
+          >
+            Create a custom role →
+          </button>
+        </p>
       )}
     </div>
   );
@@ -228,14 +259,42 @@ export function CollapsedRoleCard({
 
 // ── Pair editor ───────────────────────────────────────────────────────────────
 
+function RoleInfoExpand({ role, moduleDefaults }: { role: RoleKey; moduleDefaults: typeof ROLE_MODULE_DEFAULTS[RoleKey] }) {
+  const LEVEL_COLORS: Record<string, string> = { none: 'var(--text3)', view: '#1458A8', manage: '#0F6E56', custom: 'var(--org)' };
+  const nonNone = moduleDefaults.filter(m => m.level !== 'none').slice(0, 4);
+  return (
+    <div style={{ marginTop: 8, padding: '10px 12px', borderRadius: 6, background: 'var(--bg)', border: '0.5px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 5 }}>
+      {nonNone.map(m => {
+        const mod = PERMISSION_MODULES.find(pm => pm.id === m.moduleId);
+        return (
+          <div key={m.moduleId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <span style={{ fontSize: 11.5, color: 'var(--text2)' }}>{mod?.label ?? m.moduleId}</span>
+            <span style={{ fontSize: 10, fontFamily: "'DM Mono', monospace", color: LEVEL_COLORS[m.level] ?? 'var(--text3)', textTransform: 'capitalize' }}>{m.level}</span>
+          </div>
+        );
+      })}
+      {moduleDefaults.filter(m => m.level !== 'none').length > 4 && (
+        <div style={{ fontSize: 10.5, color: 'var(--text3)', fontFamily: "'DM Mono', monospace" }}>
+          +{moduleDefaults.filter(m => m.level !== 'none').length - 4} more modules
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PairEditor({
-  pair, takenByOthers, onChange,
+  pair, takenByOthers, onChange, visibleRoles, orgEnabled, copy,
 }: {
   pair: InvitePair;
   takenByOthers: string[];
   onChange: (patch: Partial<InvitePair>) => void;
+  visibleRoles: RoleKey[];
+  orgEnabled: boolean;
+  copy: ReturnType<typeof getOrgCopy>;
 }) {
-  const mode = pair.role ? PERIMETER_MODE[pair.role] : null;
+  const { customRoles } = useCustomRoles();
+  const [expandedInfo, setExpandedInfo] = useState<string | null>(null);
+  const mode = pair.role ? effectivePerimeterMode(pair.role, orgEnabled) : null;
 
   const toggleEntity = (id: string) =>
     onChange({ entityIds: pair.entityIds.includes(id) ? pair.entityIds.filter(e => e !== id) : [...pair.entityIds, id] });
@@ -250,39 +309,82 @@ function PairEditor({
       <div>
         <div style={labelStyle}>Role</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {ASSIGNABLE_ROLES.map(role => {
+          {visibleRoles.map(role => {
             const m = ROLE_META[role];
-            const isSelected = pair.role === role;
+            const isSelected = pair.role === role && !pair.customRoleId;
             const isTaken = isBlocked(role, takenByOthers);
+            const infoKey = `builtin-${role}`;
+            const showInfo = expandedInfo === infoKey;
             return (
-              <button
-                key={role}
-                onClick={() => !isTaken && onChange({ role, entityIds: [], groupIds: [], reports: [] })}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 16,
-                  padding: '12px 14px', borderRadius: 8, textAlign: 'left', width: '100%',
-                  border: `1.5px solid ${isSelected ? m.color : 'var(--border2)'}`,
-                  background: isSelected ? m.bg : 'transparent',
-                  cursor: isTaken ? 'not-allowed' : 'pointer',
-                  opacity: isTaken ? 0.35 : 1,
-                  transition: 'all 0.12s',
-                }}
-              >
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
-                <div style={{ minWidth: 160 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: isSelected ? m.color : 'var(--text)' }}>{m.label}</div>
-                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>{m.labelFr}</div>
+              <div key={role}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                  <button
+                    onClick={() => !isTaken && onChange({ role, customRoleId: undefined, entityIds: [], groupIds: [], reports: [] })}
+                    style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 14px', borderRadius: 8, textAlign: 'left', flex: 1, border: `1.5px solid ${isSelected ? m.color : 'var(--border2)'}`, background: isSelected ? m.bg : 'transparent', cursor: isTaken ? 'not-allowed' : 'pointer', opacity: isTaken ? 0.35 : 1, transition: 'all 0.12s' }}
+                  >
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
+                    <div style={{ minWidth: 160 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: isSelected ? m.color : 'var(--text)' }}>{getRoleLabel(role, orgEnabled)}</div>
+                      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>{m.labelFr}</div>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text2)', flex: 1 }}>{m.description}</div>
+                    {isSelected && (
+                      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style={{ flexShrink: 0 }}>
+                        <circle cx="7.5" cy="7.5" r="6.5" stroke={m.color} strokeWidth="1.3"/>
+                        <path d="M4.5 7.5l2.5 2.5 4-4" stroke={m.color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    onClick={e => { e.stopPropagation(); setExpandedInfo(showInfo ? null : infoKey); }}
+                    title="View permissions"
+                    style={{ marginLeft: 6, padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: showInfo ? 'var(--org)' : 'var(--text3)', flexShrink: 0 }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.2"/>
+                      <path d="M7 6.5v3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                      <circle cx="7" cy="4.5" r=".6" fill="currentColor"/>
+                    </svg>
+                  </button>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text2)', flex: 1 }}>{m.description}</div>
-                {isSelected && (
-                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style={{ flexShrink: 0 }}>
-                    <circle cx="7.5" cy="7.5" r="6.5" stroke={m.color} strokeWidth="1.3"/>
-                    <path d="M4.5 7.5l2.5 2.5 4-4" stroke={m.color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
-              </button>
+                {showInfo && <RoleInfoExpand role={role} moduleDefaults={ROLE_MODULE_DEFAULTS[role]} />}
+              </div>
             );
           })}
+
+          {/* Custom roles section */}
+          {customRoles.length > 0 && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0' }}>
+                <div style={{ flex: 1, height: '0.5px', background: 'var(--border)' }} />
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Custom</span>
+                <div style={{ flex: 1, height: '0.5px', background: 'var(--border)' }} />
+              </div>
+              {customRoles.map(cr => {
+                const base = ROLE_META[cr.baseRoleKey];
+                const isSelected = pair.customRoleId === cr.id;
+                return (
+                  <button
+                    key={cr.id}
+                    onClick={() => onChange({ role: cr.baseRoleKey, customRoleId: cr.id, entityIds: [], groupIds: [], reports: [] })}
+                    style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 14px', borderRadius: 8, textAlign: 'left', width: '100%', border: `1.5px solid ${isSelected ? base.color : 'var(--border2)'}`, background: isSelected ? base.bg : 'transparent', cursor: 'pointer', transition: 'all 0.12s' }}
+                  >
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: base.color, flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: isSelected ? base.color : 'var(--text)' }}>{cr.name}</div>
+                      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--text3)', marginTop: 1 }}>Custom · based on {base.label}</div>
+                    </div>
+                    {isSelected && (
+                      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style={{ flexShrink: 0 }}>
+                        <circle cx="7.5" cy="7.5" r="6.5" stroke={base.color} strokeWidth="1.3"/>
+                        <path d="M4.5 7.5l2.5 2.5 4-4" stroke={base.color} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+            </>
+          )}
         </div>
       </div>
 
@@ -290,7 +392,11 @@ function PairEditor({
       {pair.role && mode === 'fixed-org' && (
         <div style={{ padding: '12px 16px', borderRadius: 7, background: 'var(--bg)', border: '0.5px solid var(--border2)' }}>
           <div style={{ ...labelStyle, marginBottom: 4 }}>Perimeter</div>
-          <div style={{ fontSize: 13, color: 'var(--text2)' }}>Org-wide — Organisation Admins have access to all entities.</div>
+          <div style={{ fontSize: 13, color: 'var(--text2)' }}>
+            {pair.role === 'org'
+              ? `${copy.orgWide} — ${copy.orgWideDesc}`
+              : 'Company-wide — fixed perimeter.'}
+          </div>
         </div>
       )}
 
@@ -311,9 +417,10 @@ function PairEditor({
             <div style={labelStyle}>Groups</div>
             <CheckList items={GROUPS.map(g => ({ id: g.id, label: g.name }))} selected={pair.groupIds} onToggle={toggleGroup} />
           </div>
-          {pair.entityIds.length === 0 && pair.groupIds.length === 0 && (
-            <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: -12 }}>Select at least one entity or group.</p>
-          )}
+          {pair.role === 'payroll'
+            ? pair.entityIds.length === 0 && <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: -12 }}>Select at least one entity.</p>
+            : pair.entityIds.length === 0 && pair.groupIds.length === 0 && <p style={{ fontSize: 12, color: 'var(--text3)', marginTop: -12 }}>Select at least one entity or group.</p>
+          }
         </div>
       )}
 

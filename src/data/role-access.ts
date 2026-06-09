@@ -33,11 +33,11 @@ export const ROLE_META: Record<RoleKey, { label: string; labelFr: string; color:
     description: 'Full access to all features and data — except confidential conversations between managers and their reports. Can manage entities and all admin roles.',
   },
   payroll: {
-    label: 'Payroll Manager',
-    labelFr: 'Responsable Paie',
+    label: 'Payroll & HR Manager',
+    labelFr: 'Responsable Paie & RH',
     color: 'var(--entity)',
     bg: 'var(--entity-bg)',
-    description: 'Full operational access within assigned entities. Cannot add entities or manage org-level roles.',
+    description: 'Full operational access within assigned entities and groups. Cannot add entities or manage org-level roles.',
   },
   hr: {
     label: 'HR Manager',
@@ -237,7 +237,7 @@ export type PerimeterMode = 'fixed-org' | 'entity' | 'entity-and-group' | 'indiv
 
 export const PERIMETER_MODE: Record<RoleKey, PerimeterMode> = {
   org: 'fixed-org',
-  payroll: 'entity',
+  payroll: 'entity-and-group',
   hr: 'entity-and-group',
   acct: 'entity',
   mgr: 'individual',
@@ -248,3 +248,13 @@ export const PERIMETER_MODE: Record<RoleKey, PerimeterMode> = {
  * Org covers all admin access, but manager is a separate dimension and stays available.
  */
 export const BLOCKED_BY_ORG: RoleKey[] = ['payroll', 'hr', 'acct'];
+
+export function effectivePerimeterMode(role: RoleKey, orgEnabled: boolean): PerimeterMode {
+  if (!orgEnabled && role === 'acct') return 'fixed-org';
+  return PERIMETER_MODE[role];
+}
+
+export function getRoleLabel(role: RoleKey, orgEnabled: boolean): string {
+  if (!orgEnabled && role === 'org') return 'Administrator';
+  return ROLE_META[role].label;
+}

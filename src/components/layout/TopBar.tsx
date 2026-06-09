@@ -4,7 +4,7 @@ import { useRoleView } from '../../context/RoleViewContext';
 import { ROLE_META } from '../../data/role-access';
 import type { RoleKey } from '../../data/mock-users';
 
-const ALL_ROLES: RoleKey[] = ['org', 'entity', 'payroll', 'hr', 'acct', 'mgr'];
+const ALL_ROLES: RoleKey[] = ['org', 'payroll', 'hr', 'acct', 'mgr'];
 
 const PERSONAL_SETTINGS_ITEMS = [
   { label: 'Switch Company',         icon: 'switch'   },

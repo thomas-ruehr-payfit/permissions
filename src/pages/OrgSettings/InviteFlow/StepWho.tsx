@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { TEAM_MEMBERS } from '../../../data/mock-users';
 import { GROUPS, ENTITIES } from '../../../data/mock-entities';
+import { useOrgMode, getOrgCopy } from '../../../context/OrgModeContext';
 import type { InviteState } from './types';
 
 interface Props {
@@ -17,6 +18,8 @@ function entityLabel(id: string) {
 
 export function StepWho({ invite, setInvite }: Props) {
   const [search, setSearch] = useState('');
+  const { orgEnabled } = useOrgMode();
+  const copy = getOrgCopy(orgEnabled);
   const set = (patch: Partial<InviteState>) =>
     setInvite(prev => ({ ...prev, ...patch }));
 
@@ -44,7 +47,7 @@ export function StepWho({ invite, setInvite }: Props) {
               style={{ flex: 1, padding: '14px 16px', borderRadius: 8, textAlign: 'left', border: `1.5px solid ${isSelected ? 'var(--text)' : 'var(--border2)'}`, background: isSelected ? 'var(--bg)' : 'var(--surface)', cursor: 'pointer', transition: 'all 0.12s' }}
             >
               <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 3 }}>
-                {type === 'existing' ? 'From this organisation' : 'New person'}
+                {type === 'existing' ? copy.fromThisOrg : 'New person'}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text2)' }}>
                 {type === 'existing' ? 'Designate an existing collaborator' : 'Invite someone from outside'}
